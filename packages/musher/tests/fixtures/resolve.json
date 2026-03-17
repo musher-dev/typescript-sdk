@@ -1,0 +1,32 @@
+{
+	"bundleId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+	"versionId": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+	"namespace": "acme",
+	"slug": "code-review-kit",
+	"ref": "acme/code-review-kit",
+	"version": "1.2.0",
+	"sourceType": "registry",
+	"ociRef": null,
+	"ociDigest": null,
+	"state": "published",
+	"manifest": {
+		"layers": [
+			{
+				"assetId": "asset-001",
+				"logicalPath": "prompts/system.md",
+				"assetType": "prompt",
+				"contentSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+				"sizeBytes": 1024,
+				"mediaType": "text/markdown"
+			},
+			{
+				"assetId": "asset-002",
+				"logicalPath": "config/tools.json",
+				"assetType": "config",
+				"contentSha256": "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592",
+				"sizeBytes": 512,
+				"mediaType": "application/json"
+			}
+		]
+	}
+}

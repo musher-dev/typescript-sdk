@@ -1,0 +1,51 @@
+{
+	"name": "@musher-dev/musher",
+	"version": "0.0.0",
+	"description": "Official TypeScript SDK for the Musher platform — bundle loader and cache client",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.mts",
+				"default": "./dist/index.mjs"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"files": ["dist"],
+	"scripts": {
+		"build": "tsup",
+		"check": "pnpm check:format && pnpm check:lint && pnpm check:types && pnpm check:test",
+		"check:format": "biome format --write .",
+		"check:lint": "biome lint .",
+		"check:types": "tsc --noEmit",
+		"check:test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"dependencies": {
+		"zod": "^3.24.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/node": "^25.5.0",
+		"tsup": "^8.3.0",
+		"typescript": "^5.7.0",
+		"vitest": "^2.1.0"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/musher-dev/typescript-sdk.git",
+		"directory": "packages/musher"
+	},
+	"keywords": ["musher", "bundle", "sdk", "ai", "agent"]
+}

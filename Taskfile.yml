@@ -1,0 +1,45 @@
+version: "3"
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+      - pnpm install
+
+  build:
+    desc: Build all packages
+    cmds:
+      - pnpm -r build
+
+  check:
+    desc: Run all checks (format + lint + types + test)
+    cmds:
+      - task: check:format
+      - task: check:lint
+      - task: check:types
+      - task: check:test
+
+  check:format:
+    desc: Check formatting with Biome
+    cmds:
+      - pnpm biome format --write .
+
+  check:lint:
+    desc: Lint with Biome
+    cmds:
+      - pnpm biome lint .
+
+  check:types:
+    desc: Type-check all packages
+    cmds:
+      - pnpm -r check:types
+
+  check:test:
+    desc: Run tests
+    cmds:
+      - pnpm -r check:test
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - pnpm -r clean

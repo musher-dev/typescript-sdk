@@ -1,0 +1,30 @@
+{
+	"data": [
+		{
+			"id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			"publisher": {
+				"handle": "acme",
+				"displayName": "Acme Corp",
+				"trustTier": "verified",
+				"avatarUrl": null
+			},
+			"slug": "code-review-kit",
+			"displayName": "Code Review Kit",
+			"summary": "AI-powered code review prompts",
+			"assetTypes": ["prompt", "config"],
+			"tags": ["code-review", "ai"],
+			"capabilities": ["review"],
+			"license": "MIT",
+			"latestVersion": "1.2.0",
+			"starsCount": 42,
+			"downloadsTotal": 1500,
+			"downloads30d": 300,
+			"createdAt": "2026-01-15T10:30:00Z",
+			"updatedAt": "2026-02-20T14:45:00Z"
+		}
+	],
+	"meta": {
+		"nextCursor": null,
+		"hasMore": false
+	}
+}

@@ -1,0 +1,22 @@
+{
+	"private": true,
+	"name": "typescript-sdk",
+	"description": "Musher TypeScript SDK monorepo",
+	"scripts": {
+		"build": "pnpm -r build",
+		"check": "pnpm -r check",
+		"check:lint": "pnpm -r check:lint",
+		"check:format": "pnpm -r check:format",
+		"check:types": "pnpm -r check:types",
+		"check:test": "pnpm -r check:test",
+		"clean": "pnpm -r clean"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"typescript": "^5.7.0"
+	},
+	"packageManager": "pnpm@9.15.0",
+	"engines": {
+		"node": ">=20"
+	}
+}
