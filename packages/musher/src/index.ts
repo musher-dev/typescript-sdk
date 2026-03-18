@@ -2,6 +2,34 @@
 export { MusherClient } from "./client.js";
 export type { ClientConfig } from "./config.js";
 
+// -- Core classes -------------------------------------------------------------
+export { Bundle } from "./bundle.js";
+export { BundleRef } from "./ref.js";
+export { Selection } from "./selection.js";
+
+// -- Handles ------------------------------------------------------------------
+export {
+	AgentSpecHandle,
+	FileHandle,
+	PromptHandle,
+	SkillHandle,
+	ToolsetHandle,
+} from "./handles/index.js";
+
+// -- Adapters -----------------------------------------------------------------
+export {
+	exportClaudePlugin,
+	exportOpenAIInlineSkill,
+	exportOpenAILocalSkill,
+	installClaudeSkills,
+	installVSCodeSkills,
+	type OpenAIInlineSkill,
+	type OpenAILocalSkill,
+} from "./adapters/index.js";
+
+// -- Convenience functions ----------------------------------------------------
+export { configure, getClient, pull, resolve, search } from "./convenience.js";
+
 // -- Errors -------------------------------------------------------------------
 export {
 	ApiError,
@@ -70,5 +98,7 @@ export type {
 	PaginationMeta,
 	PublisherSummaryOutput,
 	SearchParams,
+	SelectionFilter,
+	VerifyResult,
 	VersionSummaryOutput,
 } from "./types.js";

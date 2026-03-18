@@ -76,6 +76,9 @@ export type CategoryOutput = z.infer<typeof CategoryOutputSchema>;
 
 export type AssetTypeValue = z.infer<typeof import("./schemas/common.js").AssetType>;
 
+/**
+ * @deprecated Use `FileHandle` instead.
+ */
 export interface LoadedAsset {
 	logicalPath: string;
 	assetType: string;
@@ -84,6 +87,9 @@ export interface LoadedAsset {
 	mediaType?: string;
 }
 
+/**
+ * @deprecated Use `Bundle` class instead.
+ */
 export interface LoadedBundle {
 	ref: string;
 	version: string;
@@ -92,6 +98,7 @@ export interface LoadedBundle {
 	getAssetsByType(type: string): LoadedAsset[];
 }
 
+/** @deprecated Use `Bundle` class instead. */
 export interface CachedBundle {
 	ref: string;
 	version: string;
@@ -104,4 +111,19 @@ export interface SearchParams extends PaginateParams {
 	tags?: string[];
 	assetTypes?: string[];
 	category?: string;
+}
+
+// -- New types ----------------------------------------------------------------
+
+export interface VerifyResult {
+	ok: boolean;
+	errors: Array<{ path: string; expected: string; actual: string }>;
+}
+
+export interface SelectionFilter {
+	skills?: string[];
+	prompts?: string[];
+	toolsets?: string[];
+	agentSpecs?: string[];
+	paths?: string[];
 }

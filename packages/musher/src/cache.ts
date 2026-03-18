@@ -12,8 +12,9 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { Bundle } from "./bundle.js";
 import { CacheError, IntegrityError } from "./errors.js";
-import type { BundleResolveOutput, CachedBundle, LoadedAsset, LoadedBundle } from "./types.js";
+import type { BundleResolveOutput, CachedBundle } from "./types.js";
 
 interface CacheMeta {
 	fetchedAt: string;
@@ -47,7 +48,10 @@ export class BundleCache {
 	}
 
 	/** Write a resolved bundle and its assets to the cache. */
-	async write(manifest: BundleResolveOutput, assets: Map<string, string>): Promise<CachedBundle> {
+	async write(
+		manifest: BundleResolveOutput,
+		assets: Map<string, Buffer | string>,
+	): Promise<CachedBundle> {
 		const dir = this.bundlePath(manifest.namespace, manifest.slug, manifest.version);
 
 		try {
@@ -60,7 +64,10 @@ export class BundleCache {
 			for (const [logicalPath, content] of assets) {
 				const assetPath = join(dir, "assets", logicalPath);
 				await mkdir(dirname(assetPath), { recursive: true });
-				await writeFile(assetPath, content);
+				await writeFile(
+					assetPath,
+					typeof content === "string" ? Buffer.from(content, "utf-8") : content,
+				);
 			}
 
 			// Write metadata
@@ -85,8 +92,8 @@ export class BundleCache {
 		}
 	}
 
-	/** Load a cached bundle from disk into memory, verifying SHA256 integrity. */
-	async load(namespace: string, slug: string, version: string): Promise<LoadedBundle | null> {
+	/** Load a cached bundle from disk, verifying SHA256 integrity. Returns a Bundle. */
+	async load(namespace: string, slug: string, version: string): Promise<Bundle | null> {
 		const dir = this.bundlePath(namespace, slug, version);
 		const manifestPath = join(dir, "manifest.json");
 
@@ -96,41 +103,24 @@ export class BundleCache {
 			const raw = await readFile(manifestPath, "utf-8");
 			const manifest: BundleResolveOutput = JSON.parse(raw);
 
-			const assets = new Map<string, LoadedAsset>();
+			const contents = new Map<string, Buffer>();
 
 			if (manifest.manifest?.layers) {
 				for (const layer of manifest.manifest.layers) {
 					const assetPath = join(dir, "assets", layer.logicalPath);
-					const content = await readFile(assetPath, "utf-8");
+					const buf = await readFile(assetPath);
 
-					// Verify integrity
-					const hash = createHash("sha256").update(content).digest("hex");
+					// Verify integrity using raw bytes
+					const hash = createHash("sha256").update(buf).digest("hex");
 					if (hash !== layer.contentSha256) {
 						throw new IntegrityError(layer.contentSha256, hash);
 					}
 
-					assets.set(layer.logicalPath, {
-						logicalPath: layer.logicalPath,
-						assetType: layer.assetType,
-						content,
-						sha256: layer.contentSha256,
-						mediaType: layer.mediaType ?? undefined,
-					});
+					contents.set(layer.logicalPath, buf);
 				}
 			}
 
-			const ref = `${namespace}/${slug}`;
-			return {
-				ref,
-				version: manifest.version,
-				assets,
-				getAsset(path: string) {
-					return assets.get(path);
-				},
-				getAssetsByType(type: string) {
-					return [...assets.values()].filter((a) => a.assetType === type);
-				},
-			};
+			return new Bundle(manifest, contents);
 		} catch (error) {
 			if (error instanceof IntegrityError) throw error;
 			throw new CacheError(

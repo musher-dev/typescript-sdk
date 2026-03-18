@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BundleCache } from "../src/cache.js";
+import { Bundle } from "../src/bundle.js";
 import type { BundleResolveOutput } from "../src/types.js";
 
 const FIXTURE_MANIFEST: BundleResolveOutput = {
@@ -42,7 +43,7 @@ describe("BundleCache", () => {
 	});
 
 	it("writes and loads a bundle", async () => {
-		const assets = new Map([["hello.txt", "Hello, World!"]]);
+		const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
 		const cached = await cache.write(FIXTURE_MANIFEST, assets);
 
 		expect(cached.ref).toBe("acme/test-bundle");
@@ -50,13 +51,23 @@ describe("BundleCache", () => {
 
 		const loaded = await cache.load("acme", "test-bundle", "1.0.0");
 		expect(loaded).not.toBeNull();
-		expect(loaded?.ref).toBe("acme/test-bundle");
+		expect(loaded).toBeInstanceOf(Bundle);
+		expect(loaded?.ref.toString()).toBe("acme/test-bundle");
 		expect(loaded?.version).toBe("1.0.0");
-		expect(loaded?.assets.size).toBe(1);
+		expect(loaded?.files()).toHaveLength(1);
 
-		const asset = loaded?.getAsset("hello.txt");
-		expect(asset?.content).toBe("Hello, World!");
-		expect(asset?.assetType).toBe("prompt");
+		const file = loaded?.file("hello.txt");
+		expect(file?.text()).toBe("Hello, World!");
+		expect(file?.assetType).toBe("prompt");
+	});
+
+	it("accepts string values in write() for backwards compat", async () => {
+		const assets = new Map<string, Buffer | string>([["hello.txt", "Hello, World!"]]);
+		const cached = await cache.write(FIXTURE_MANIFEST, assets);
+		expect(cached.ref).toBe("acme/test-bundle");
+
+		const loaded = await cache.load("acme", "test-bundle", "1.0.0");
+		expect(loaded?.file("hello.txt")?.text()).toBe("Hello, World!");
 	});
 
 	it("returns null for missing cache entry", async () => {
@@ -65,7 +76,7 @@ describe("BundleCache", () => {
 	});
 
 	it("checks freshness correctly", async () => {
-		const assets = new Map([["hello.txt", "Hello, World!"]]);
+		const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
 		await cache.write(FIXTURE_MANIFEST, assets);
 
 		const fresh = await cache.isFresh("acme", "test-bundle", "1.0.0");
@@ -75,8 +86,8 @@ describe("BundleCache", () => {
 		expect(stale).toBe(false);
 	});
 
-	it("getAssetsByType filters correctly", async () => {
-		const assets = new Map([["hello.txt", "Hello, World!"]]);
+	it("deprecated getAssetsByType still works via Bundle", async () => {
+		const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
 		await cache.write(FIXTURE_MANIFEST, assets);
 
 		const loaded = await cache.load("acme", "test-bundle", "1.0.0");
@@ -88,7 +99,7 @@ describe("BundleCache", () => {
 	});
 
 	it("purge removes all cached data", async () => {
-		const assets = new Map([["hello.txt", "Hello, World!"]]);
+		const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
 		await cache.write(FIXTURE_MANIFEST, assets);
 		await cache.purge();
 

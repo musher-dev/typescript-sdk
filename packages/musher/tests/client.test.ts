@@ -21,6 +21,11 @@ describe("MusherClient", () => {
 		expect(client).toBeInstanceOf(MusherClient);
 	});
 
+	it("exposes catalog as alias for hub", () => {
+		const client = new MusherClient();
+		expect(client.catalog).toBe(client.hub);
+	});
+
 	it("exposes cache.clean and cache.purge methods", () => {
 		const client = new MusherClient();
 		expect(typeof client.cache.clean).toBe("function");
@@ -30,12 +35,18 @@ describe("MusherClient", () => {
 	it("rejects invalid ref in pull()", async () => {
 		const client = new MusherClient();
 		await expect(client.pull("invalid-ref")).rejects.toThrow(MushError);
-		await expect(client.pull("too/many/parts")).rejects.toThrow(MushError);
 		await expect(client.pull("/missing-namespace")).rejects.toThrow(MushError);
+		await expect(client.pull("")).rejects.toThrow(MushError);
 	});
 
 	it("rejects invalid ref in load()", async () => {
 		const client = new MusherClient();
 		await expect(client.load("bad")).rejects.toThrow(MushError);
+	});
+
+	it("accepts versioned refs in pull()", async () => {
+		const client = new MusherClient();
+		// Will fail due to network, but should not throw a ref parse error
+		await expect(client.pull("acme/bundle:1.0.0")).rejects.not.toThrow(/Invalid bundle ref/);
 	});
 });
