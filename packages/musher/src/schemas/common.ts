@@ -17,8 +17,6 @@ export const AssetType = z.enum([
 
 export const BundleSourceType = z.enum(["console", "registry"]);
 
-export const TrustTier = z.enum(["unverified", "community", "verified"]);
-
 // -- Pagination ---------------------------------------------------------------
 
 export const PaginationMetaSchema = z.object({

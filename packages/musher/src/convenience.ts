@@ -5,7 +5,7 @@
 import type { Bundle } from "./bundle.js";
 import { MusherClient } from "./client.js";
 import type { ClientConfig } from "./config.js";
-import type { BundleResolveOutput, ListingSearchOutput, Paginated, SearchParams } from "./types.js";
+import type { BundleResolveOutput } from "./types.js";
 
 let _config: ClientConfig | undefined;
 let _client: MusherClient | undefined;
@@ -32,9 +32,4 @@ export async function pull(ref: string, version?: string): Promise<Bundle> {
 /** Resolve bundle metadata without downloading content. */
 export async function resolve(ref: string, version?: string): Promise<BundleResolveOutput> {
 	return getClient().resolve(ref, version);
-}
-
-/** Search the hub for bundles. */
-export async function search(params?: SearchParams): Promise<Paginated<ListingSearchOutput>> {
-	return getClient().search(params);
 }

@@ -11,13 +11,11 @@ import { type ClientConfig, resolveConfig } from "./config.js";
 import { HttpTransport } from "./http.js";
 import { BundleRef } from "./ref.js";
 import { BundlesResource } from "./resources/bundles.js";
-import { HubResource } from "./resources/hub.js";
-import type { BundleResolveOutput, ListingSearchOutput, Paginated, SearchParams } from "./types.js";
+import type { BundleResolveOutput } from "./types.js";
 
 let _loadDeprecationWarned = false;
 
 export class MusherClient {
-	readonly hub: HubResource;
 	readonly bundles: BundlesResource;
 
 	private readonly _cache: BundleCache;
@@ -27,13 +25,7 @@ export class MusherClient {
 		const resolved = resolveConfig(config);
 		this._http = new HttpTransport(resolved);
 		this._cache = new BundleCache(resolved.cacheDir, resolved.cacheTtlSeconds);
-		this.hub = new HubResource(this._http);
 		this.bundles = new BundlesResource(this._http);
-	}
-
-	/** Alias for `hub`. */
-	get catalog(): HubResource {
-		return this.hub;
 	}
 
 	/**
@@ -73,11 +65,6 @@ export class MusherClient {
 		const parsed = BundleRef.parse(ref);
 		const resolvedVersion = version ?? parsed.version;
 		return this.bundles.resolve(parsed.namespace, parsed.slug, resolvedVersion);
-	}
-
-	/** Search the hub for bundles. Shortcut for `hub.search()`. */
-	async search(params?: SearchParams): Promise<Paginated<ListingSearchOutput>> {
-		return this.hub.search(params);
 	}
 
 	/**

@@ -5,7 +5,6 @@ import { MushError } from "../src/errors.js";
 describe("MusherClient", () => {
 	it("creates with default config", () => {
 		const client = new MusherClient();
-		expect(client.hub).toBeDefined();
 		expect(client.bundles).toBeDefined();
 		expect(client.cache).toBeDefined();
 	});
@@ -19,11 +18,6 @@ describe("MusherClient", () => {
 			retries: 1,
 		});
 		expect(client).toBeInstanceOf(MusherClient);
-	});
-
-	it("exposes catalog as alias for hub", () => {
-		const client = new MusherClient();
-		expect(client.catalog).toBe(client.hub);
 	});
 
 	it("exposes cache.clean and cache.purge methods", () => {

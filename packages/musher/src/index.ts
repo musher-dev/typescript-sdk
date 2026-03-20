@@ -28,7 +28,7 @@ export {
 } from "./adapters/index.js";
 
 // -- Convenience functions ----------------------------------------------------
-export { configure, getClient, pull, resolve, search } from "./convenience.js";
+export { configure, getClient, pull, resolve } from "./convenience.js";
 
 // -- Errors -------------------------------------------------------------------
 export {
@@ -62,15 +62,9 @@ export {
 	BundleVersionState,
 	BundleVersionSummaryOutputSchema,
 	BundleVisibility,
-	CategoryOutputSchema,
-	ListingDetailOutputSchema,
-	ListingSearchOutputSchema,
 	ManifestAssetOutputSchema,
 	ManifestDetailOutputSchema,
 	PaginationMetaSchema,
-	PublisherSummaryOutputSchema,
-	TrustTier,
-	VersionSummaryOutputSchema,
 	paginatedSchema,
 } from "./schemas/index.js";
 
@@ -86,9 +80,6 @@ export type {
 	BundleVersionDetailOutput,
 	BundleVersionSummaryOutput,
 	CachedBundle,
-	CategoryOutput,
-	ListingDetailOutput,
-	ListingSearchOutput,
 	LoadedAsset,
 	LoadedBundle,
 	ManifestAssetOutput,
@@ -96,9 +87,6 @@ export type {
 	Paginated,
 	PaginateParams,
 	PaginationMeta,
-	PublisherSummaryOutput,
-	SearchParams,
 	SelectionFilter,
 	VerifyResult,
-	VersionSummaryOutput,
 } from "./types.js";
