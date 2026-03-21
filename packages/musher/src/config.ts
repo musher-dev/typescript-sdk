@@ -12,8 +12,6 @@ export interface ClientConfig {
 	baseUrl?: string;
 	/** API key authentication. */
 	apiKey?: string;
-	/** Bearer token authentication. Takes precedence over apiKey. */
-	token?: string;
 	/** Override cache directory path. */
 	cacheDir?: string;
 	/** Override config directory path. */
@@ -31,7 +29,6 @@ export interface ClientConfig {
 export interface ResolvedConfig {
 	baseUrl: string;
 	apiKey: string | undefined;
-	token: string | undefined;
 	cacheDir: string;
 	configDir: string;
 	manifestTtlSeconds: number;
@@ -46,11 +43,15 @@ const DEFAULT_REF_TTL = 300;
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_RETRIES = 2;
 
-/** Read the API key from the musher config directory. */
-export function readApiKeyFile(configDir?: string): string | undefined {
+function computeHostId(host: string): string {
+	return host.replace(/[:/]/g, "_");
+}
+
+/** Read the API key from the host-scoped credentials directory. */
+export function readApiKeyFile(configDir?: string, host = "api.musher.dev"): string | undefined {
 	try {
 		const dir = configDir ?? resolveMusherDirs().config;
-		const filePath = join(dir, "api-key");
+		const filePath = join(dir, "credentials", computeHostId(host), "api-key");
 		const content = readFileSync(filePath, "utf-8").trim();
 		if (!content) return undefined;
 
@@ -97,8 +98,7 @@ export function resolveConfig(config?: ClientConfig): ResolvedConfig {
 			config?.apiKey ??
 			env("MUSHER_API_KEY") ??
 			readKeyring(keyringHost) ??
-			readApiKeyFile(configDir),
-		token: config?.token ?? env("MUSHER_TOKEN"),
+			readApiKeyFile(configDir, keyringHost),
 		cacheDir: config?.cacheDir ?? dirs.cache,
 		configDir,
 		manifestTtlSeconds: config?.manifestTtlSeconds ?? DEFAULT_MANIFEST_TTL,

@@ -96,9 +96,7 @@ export class HttpTransport {
 			Accept: "application/json",
 		};
 
-		if (this.config.token) {
-			headers.Authorization = `Bearer ${this.config.token}`;
-		} else if (this.config.apiKey) {
+		if (this.config.apiKey) {
 			headers.Authorization = `Bearer ${this.config.apiKey}`;
 		}
 

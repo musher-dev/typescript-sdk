@@ -25,7 +25,7 @@
 		"check": "pnpm check:format && pnpm check:lint && pnpm check:types && pnpm check:test",
 		"check:format": "biome format --write .",
 		"check:lint": "biome lint .",
-		"check:types": "tsc --noEmit",
+		"check:types": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
 		"check:test": "vitest run",
 		"clean": "rm -rf dist"
 	},

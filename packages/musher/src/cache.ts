@@ -128,6 +128,24 @@ export class BundleCache {
 		}
 	}
 
+	/** Load only the manifest JSON (no blob content). Returns null if not cached. */
+	async loadManifest(
+		namespace: string,
+		slug: string,
+		version: string,
+	): Promise<BundleResolveOutput | null> {
+		const mPath = this.manifestPath(namespace, slug, version);
+
+		if (!existsSync(mPath)) return null;
+
+		try {
+			const raw = await readFile(mPath, "utf-8");
+			return JSON.parse(raw) as BundleResolveOutput;
+		} catch {
+			return null;
+		}
+	}
+
 	// -- Write --------------------------------------------------------------------
 
 	/** Write a resolved bundle and its assets to the cache. */

@@ -42,7 +42,23 @@ function tryKeyringLookup(service: string): string | undefined {
 			return result.toString("utf-8").trim() || undefined;
 		}
 
-		// Windows: not supported
+		if (platform === "win32") {
+			const result = execFileSync(
+				"powershell.exe",
+				[
+					"-NoProfile",
+					"-NonInteractive",
+					"-Command",
+					`$cred = Get-StoredCredential -Target '${service.replace(/'/g, "''")}'; if ($cred) { $cred.GetNetworkCredential().Password }`,
+				],
+				{
+					stdio: ["ignore", "pipe", "ignore"],
+					timeout: 5_000,
+				},
+			);
+			return result.toString("utf-8").trim() || undefined;
+		}
+
 		return undefined;
 	} catch {
 		return undefined;

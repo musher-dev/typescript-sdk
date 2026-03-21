@@ -67,7 +67,7 @@ describe("Selection", () => {
 		const sel = new Selection(bundle, { skills: ["alpha"] });
 		expect(sel.files()).toHaveLength(1);
 		expect(sel.skills()).toHaveLength(1);
-		expect(sel.skills()[0].name).toBe("alpha");
+		expect(sel.skills()[0]!.name).toBe("alpha");
 	});
 
 	it("filters by prompt name", () => {
@@ -125,7 +125,7 @@ describe("Selection", () => {
 			const written = await sel.materialize(tempDir);
 
 			expect(written).toHaveLength(1);
-			const content = await readFile(written[0], "utf-8");
+			const content = await readFile(written[0]!, "utf-8");
 			expect(content).toBe(SKILL_A);
 		});
 	});

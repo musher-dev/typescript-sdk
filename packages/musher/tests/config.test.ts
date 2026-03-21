@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, rmSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,7 +16,7 @@ describe("resolveConfig", () => {
 	const envBackup: Record<string, string | undefined> = {};
 
 	beforeEach(() => {
-		for (const key of ["MUSHER_API_URL", "MUSHER_BASE_URL", "MUSHER_API_KEY", "MUSHER_TOKEN"]) {
+		for (const key of ["MUSHER_API_URL", "MUSHER_BASE_URL", "MUSHER_API_KEY"]) {
 			envBackup[key] = process.env[key];
 			process.env[key] = "";
 		}
@@ -78,12 +78,6 @@ describe("resolveConfig", () => {
 		expect(config.apiKey).toBe("musher-key");
 	});
 
-	it("reads MUSHER_TOKEN from env", () => {
-		process.env.MUSHER_TOKEN = "musher-token";
-		const config = resolveConfig();
-		expect(config.token).toBe("musher-token");
-	});
-
 	it("constructor values take precedence over env vars", () => {
 		process.env.MUSHER_API_KEY = "env-key";
 		const config = resolveConfig({ apiKey: "constructor-key" });
@@ -122,40 +116,62 @@ describe("readApiKeyFile", () => {
 		rmSync(tempDir, { recursive: true, force: true });
 	});
 
-	it("reads api-key file from config dir", () => {
-		const filePath = join(tempDir, "api-key");
-		writeFileSync(filePath, "  file-api-key  \n", { mode: 0o600 });
-		const result = readApiKeyFile(tempDir);
+	const hostId = "api.musher.dev";
+
+	function credentialDir(): string {
+		const dir = join(tempDir, "credentials", hostId);
+		mkdirSync(dir, { recursive: true });
+		return dir;
+	}
+
+	it("reads api-key file from host-scoped credentials dir", () => {
+		const dir = credentialDir();
+		writeFileSync(join(dir, "api-key"), "  file-api-key  \n", { mode: 0o600 });
+		const result = readApiKeyFile(tempDir, hostId);
 		expect(result).toBe("file-api-key");
 	});
 
 	it("returns undefined when file does not exist", () => {
-		const result = readApiKeyFile(tempDir);
+		const result = readApiKeyFile(tempDir, hostId);
 		expect(result).toBeUndefined();
 	});
 
 	it("returns undefined when file is empty", () => {
-		writeFileSync(join(tempDir, "api-key"), "   \n");
-		const result = readApiKeyFile(tempDir);
+		const dir = credentialDir();
+		writeFileSync(join(dir, "api-key"), "   \n");
+		const result = readApiKeyFile(tempDir, hostId);
 		expect(result).toBeUndefined();
+	});
+
+	it("scopes credentials by host", () => {
+		const dir1 = join(tempDir, "credentials", "api.musher.dev");
+		const dir2 = join(tempDir, "credentials", "localhost_8080");
+		mkdirSync(dir1, { recursive: true });
+		mkdirSync(dir2, { recursive: true });
+		writeFileSync(join(dir1, "api-key"), "prod-key", { mode: 0o600 });
+		writeFileSync(join(dir2, "api-key"), "local-key", { mode: 0o600 });
+		expect(readApiKeyFile(tempDir, "api.musher.dev")).toBe("prod-key");
+		expect(readApiKeyFile(tempDir, "localhost:8080")).toBe("local-key");
 	});
 
 	it.skipIf(process.platform === "win32")(
 		"returns undefined when file is readable by group or others",
 		() => {
-			const filePath = join(tempDir, "api-key");
+			const dir = credentialDir();
+			const filePath = join(dir, "api-key");
 			writeFileSync(filePath, "secret-key");
 			chmodSync(filePath, 0o644);
-			const result = readApiKeyFile(tempDir);
+			const result = readApiKeyFile(tempDir, hostId);
 			expect(result).toBeUndefined();
 		},
 	);
 
 	it.skipIf(process.platform === "win32")("reads file when permissions are owner-only", () => {
-		const filePath = join(tempDir, "api-key");
+		const dir = credentialDir();
+		const filePath = join(dir, "api-key");
 		writeFileSync(filePath, "secret-key");
 		chmodSync(filePath, 0o600);
-		const result = readApiKeyFile(tempDir);
+		const result = readApiKeyFile(tempDir, hostId);
 		expect(result).toBe("secret-key");
 	});
 });

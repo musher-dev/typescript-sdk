@@ -13,7 +13,8 @@ describe("MusherClient", () => {
 		const client = new MusherClient({
 			baseUrl: "https://custom.api.dev",
 			apiKey: "test-key",
-			cacheTtlSeconds: 7200,
+			manifestTtlSeconds: 7200,
+			refTtlSeconds: 120,
 			timeout: 5000,
 			retries: 1,
 		});

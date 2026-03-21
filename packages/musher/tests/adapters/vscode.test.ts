@@ -54,9 +54,9 @@ describe("VS Code adapter", () => {
 		const written = await installVSCodeSkills(bundle, tempDir);
 
 		expect(written).toHaveLength(1);
-		const content = await readFile(written[0], "utf-8");
+		const content = await readFile(written[0]!, "utf-8");
 		expect(content).toBe(SKILL_MD);
-		expect(written[0]).toContain(".agents/skills/review");
+		expect(written[0]!).toContain(".agents/skills/review");
 	});
 
 	it("accepts custom subdir", async () => {

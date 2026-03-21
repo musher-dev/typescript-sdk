@@ -82,14 +82,51 @@ export class MusherClient {
 
 	/**
 	 * Resolve bundle metadata without downloading content.
+	 * Checks the manifest cache (with TTL) before calling the API.
 	 *
 	 * @param ref - Bundle reference.
 	 * @param version - Optional semver constraint.
 	 */
 	async resolve(ref: string, version?: string): Promise<BundleResolveOutput> {
 		const parsed = BundleRef.parse(ref);
-		const resolvedVersion = version ?? parsed.version;
-		return this.bundles.resolve(parsed.namespace, parsed.slug, resolvedVersion, parsed.digest);
+		let resolvedVersion = version ?? parsed.version;
+
+		// For unversioned, non-digest refs, try the ref cache first
+		if (!resolvedVersion && !parsed.digest) {
+			const cachedVersion = await this._cache.resolveRef(parsed.namespace, parsed.slug, "latest");
+			if (cachedVersion) {
+				resolvedVersion = cachedVersion;
+			}
+		}
+
+		// If version is known, check manifest cache freshness
+		if (resolvedVersion) {
+			const fresh = await this._cache.isFresh(parsed.namespace, parsed.slug, resolvedVersion);
+			if (fresh) {
+				const manifest = await this._cache.loadManifest(
+					parsed.namespace,
+					parsed.slug,
+					resolvedVersion,
+				);
+				if (manifest) return manifest;
+			}
+		}
+
+		// Cache miss or stale — call the API
+		const resolved = await this.bundles.resolve(
+			parsed.namespace,
+			parsed.slug,
+			resolvedVersion,
+			parsed.digest,
+		);
+
+		// Cache the ref → version mapping for future lookups
+		if (!parsed.digest) {
+			const refAlias = resolvedVersion ?? "latest";
+			await this._cache.cacheRef(parsed.namespace, parsed.slug, refAlias, resolved.version);
+		}
+
+		return resolved;
 	}
 
 	/**

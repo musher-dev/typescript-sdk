@@ -25,7 +25,7 @@ describe("FileHandle", () => {
 		const { value, done } = await reader.read();
 		expect(done).toBe(false);
 		expect(value).toBeInstanceOf(Uint8Array);
-		expect(value.length).toBe(13);
+		expect(value!.length).toBe(13);
 
 		const { done: done2 } = await reader.read();
 		expect(done2).toBe(true);

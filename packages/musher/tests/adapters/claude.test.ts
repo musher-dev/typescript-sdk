@@ -87,7 +87,7 @@ describe("Claude adapter", () => {
 		const written = await installClaudeSkills(bundle, tempDir);
 
 		expect(written.length).toBeGreaterThan(0);
-		const skillContent = await readFile(written[0], "utf-8");
+		const skillContent = await readFile(written[0]!, "utf-8");
 		expect(skillContent.length).toBeGreaterThan(0);
 	});
 });

@@ -17,14 +17,11 @@ const client = new MusherClient({
   apiKey: process.env.MUSHER_API_KEY,
 });
 
-// Browse the public hub
-const results = await client.hub.search({ query: "code-review" });
+// Resolve bundle metadata (cache-aware, checks TTL before API call)
+const meta = await client.resolve("acme/code-review-kit");
 
-// Pull a bundle (downloads + caches locally)
-const cached = await client.pull("acme/code-review-kit");
-
-// Load into memory (cache-first, pulls if stale)
-const bundle = await client.load("acme/code-review-kit", "1.2.0");
+// Pull a bundle (downloads + verifies integrity + caches locally)
+const bundle = await client.pull("acme/code-review-kit", "1.2.0");
 const systemPrompt = bundle.getAsset("prompts/system.md");
 ```
 
