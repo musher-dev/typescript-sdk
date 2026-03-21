@@ -7,7 +7,6 @@
 
 import { execFileSync } from "node:child_process";
 
-const LEGACY_SERVICE = "dev.musher.musher";
 const ACCOUNT = "api-key";
 
 function serviceName(host: string): string {
@@ -68,24 +67,14 @@ function tryKeyringLookup(service: string): string | undefined {
 /**
  * Attempt to read the API key from the OS keyring.
  *
- * Looks up a host-scoped entry first (`musher/<host>`), then falls back
- * to the legacy service name (`dev.musher.musher`) for migration.
+ * Looks up the host-scoped entry (`musher/<host>`).
  *
  * - **macOS**: `security find-generic-password`
  * - **Linux**: `secret-tool lookup`
- * - **Windows**: not supported (returns `undefined`)
+ * - **Windows**: `Get-StoredCredential` (requires CredentialManager module, best-effort)
  *
  * @param host - Registry hostname (e.g. "api.musher.dev").
  */
 export function readKeyring(host = "api.musher.dev"): string | undefined {
-	try {
-		// Host-scoped lookup
-		const value = tryKeyringLookup(serviceName(host));
-		if (value) return value;
-
-		// Legacy fallback for migration
-		return tryKeyringLookup(LEGACY_SERVICE);
-	} catch {
-		return undefined;
-	}
+	return tryKeyringLookup(serviceName(host));
 }

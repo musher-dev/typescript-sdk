@@ -206,6 +206,26 @@ describe("BundleCache", () => {
 		});
 	});
 
+	describe("writeManifest", () => {
+		it("persists manifest and meta without writing blobs", async () => {
+			await cache.writeManifest(FIXTURE_MANIFEST);
+
+			// Manifest should be loadable
+			const loaded = await cache.loadManifest("acme", "test-bundle", "1.0.0");
+			expect(loaded).not.toBeNull();
+			expect(loaded?.namespace).toBe("acme");
+			expect(loaded?.version).toBe("1.0.0");
+
+			// Should be fresh
+			const fresh = await cache.isFresh("acme", "test-bundle", "1.0.0");
+			expect(fresh).toBe(true);
+
+			// No blobs should have been created
+			const blobsDir = join(tempDir, "blobs");
+			expect(existsSync(blobsDir)).toBe(false);
+		});
+	});
+
 	describe("manifest storage", () => {
 		it("stores manifests under manifests/{host-id}/{ns}/{slug}/{version}.json", async () => {
 			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);

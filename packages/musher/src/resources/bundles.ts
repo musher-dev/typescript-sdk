@@ -116,11 +116,17 @@ export class BundlesResource {
 		);
 	}
 
-	async getAsset(namespace: string, bundle: string, path: string): Promise<AssetDetailOutput> {
+	async getAsset(
+		namespace: string,
+		bundle: string,
+		assetId: string,
+		version: string,
+	): Promise<AssetDetailOutput> {
 		return this.http.request(
 			"GET",
-			`/v1/namespaces/${enc(namespace)}/bundles/${enc(bundle)}/assets/${enc(path)}`,
+			`/v1/namespaces/${enc(namespace)}/bundles/${enc(bundle)}/assets/${enc(assetId)}`,
 			AssetDetailOutputSchema,
+			{ params: { version } },
 		);
 	}
 }

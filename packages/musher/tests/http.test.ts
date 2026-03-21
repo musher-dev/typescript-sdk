@@ -19,8 +19,8 @@ describe("resolveConfig", () => {
 		expect(config.baseUrl).toBe("https://api.musher.dev");
 		expect(config.manifestTtlSeconds).toBe(86_400);
 		expect(config.refTtlSeconds).toBe(300);
-		expect(config.timeout).toBe(30_000);
-		expect(config.retries).toBe(2);
+		expect(config.timeout).toBe(60_000);
+		expect(config.retries).toBe(3);
 	});
 
 	it("overrides defaults with provided values", () => {

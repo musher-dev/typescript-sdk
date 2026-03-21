@@ -56,7 +56,12 @@ export class MusherClient {
 		const assets = new Map<string, Buffer>();
 		if (resolved.manifest?.layers) {
 			for (const layer of resolved.manifest.layers) {
-				const asset = await this.bundles.getAsset(parsed.namespace, parsed.slug, layer.logicalPath);
+				const asset = await this.bundles.getAsset(
+					parsed.namespace,
+					parsed.slug,
+					layer.assetId,
+					resolved.version,
+				);
 				if (asset.contentText != null) {
 					const buf = Buffer.from(asset.contentText, "utf-8");
 					const hash = createHash("sha256").update(buf).digest("hex");
@@ -119,6 +124,9 @@ export class MusherClient {
 			resolvedVersion,
 			parsed.digest,
 		);
+
+		// Persist resolved manifest to disk cache
+		await this._cache.writeManifest(resolved);
 
 		// Cache the ref → version mapping for future lookups
 		if (!parsed.digest) {

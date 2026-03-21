@@ -16,7 +16,7 @@ describe("resolveConfig", () => {
 	const envBackup: Record<string, string | undefined> = {};
 
 	beforeEach(() => {
-		for (const key of ["MUSHER_API_URL", "MUSHER_BASE_URL", "MUSHER_API_KEY"]) {
+		for (const key of ["MUSHER_API_URL", "MUSHER_API_KEY"]) {
 			envBackup[key] = process.env[key];
 			process.env[key] = "";
 		}
@@ -34,8 +34,8 @@ describe("resolveConfig", () => {
 		expect(config.baseUrl).toBe("https://api.musher.dev");
 		expect(config.manifestTtlSeconds).toBe(86_400);
 		expect(config.refTtlSeconds).toBe(300);
-		expect(config.timeout).toBe(30_000);
-		expect(config.retries).toBe(2);
+		expect(config.timeout).toBe(60_000);
+		expect(config.retries).toBe(3);
 	});
 
 	it("includes configDir in resolved config", () => {
@@ -59,17 +59,10 @@ describe("resolveConfig", () => {
 		expect(config.retries).toBe(0);
 	});
 
-	it("MUSHER_API_URL takes precedence over MUSHER_BASE_URL", () => {
+	it("reads base URL from MUSHER_API_URL env var", () => {
 		process.env.MUSHER_API_URL = "https://api-url.dev";
-		process.env.MUSHER_BASE_URL = "https://base-url.dev";
 		const config = resolveConfig();
 		expect(config.baseUrl).toBe("https://api-url.dev");
-	});
-
-	it("falls back to MUSHER_BASE_URL when MUSHER_API_URL is not set", () => {
-		process.env.MUSHER_BASE_URL = "https://base-url.dev";
-		const config = resolveConfig();
-		expect(config.baseUrl).toBe("https://base-url.dev");
 	});
 
 	it("reads MUSHER_API_KEY from env", () => {

@@ -148,6 +148,29 @@ export class BundleCache {
 
 	// -- Write --------------------------------------------------------------------
 
+	/** Write only the manifest and metadata to the cache (no blobs). */
+	async writeManifest(manifest: BundleResolveOutput): Promise<void> {
+		try {
+			await this.ensureCacheDirTag();
+
+			const mPath = this.manifestPath(manifest.namespace, manifest.slug, manifest.version);
+			await this.atomicWrite(mPath, Buffer.from(JSON.stringify(manifest, null, 2)));
+
+			const meta: CacheMeta = {
+				fetchedAt: new Date().toISOString(),
+				ttlSeconds: this.manifestTtlSeconds,
+				ociDigest: manifest.ociDigest ?? undefined,
+			};
+			const metPath = this.metaPath(manifest.namespace, manifest.slug, manifest.version);
+			await this.atomicWrite(metPath, Buffer.from(JSON.stringify(meta, null, 2)));
+		} catch (error) {
+			throw new CacheError(
+				`Failed to write manifest cache: ${error instanceof Error ? error.message : String(error)}`,
+				{ cause: error instanceof Error ? error : undefined },
+			);
+		}
+	}
+
 	/** Write a resolved bundle and its assets to the cache. */
 	async write(
 		manifest: BundleResolveOutput,
@@ -162,18 +185,8 @@ export class BundleCache {
 				await this.writeBlob(buf);
 			}
 
-			// Write manifest
-			const mPath = this.manifestPath(manifest.namespace, manifest.slug, manifest.version);
-			await this.atomicWrite(mPath, Buffer.from(JSON.stringify(manifest, null, 2)));
-
-			// Write metadata (with ociDigest preserved)
-			const meta: CacheMeta = {
-				fetchedAt: new Date().toISOString(),
-				ttlSeconds: this.manifestTtlSeconds,
-				ociDigest: manifest.ociDigest ?? undefined,
-			};
-			const metPath = this.metaPath(manifest.namespace, manifest.slug, manifest.version);
-			await this.atomicWrite(metPath, Buffer.from(JSON.stringify(meta, null, 2)));
+			// Write manifest + metadata
+			await this.writeManifest(manifest);
 
 			return {
 				ref: manifest.ref,

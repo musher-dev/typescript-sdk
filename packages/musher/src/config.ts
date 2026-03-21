@@ -40,17 +40,17 @@ export interface ResolvedConfig {
 const DEFAULT_BASE_URL = "https://api.musher.dev";
 const DEFAULT_MANIFEST_TTL = 86_400;
 const DEFAULT_REF_TTL = 300;
-const DEFAULT_TIMEOUT = 30_000;
-const DEFAULT_RETRIES = 2;
+const DEFAULT_TIMEOUT = 60_000;
+const DEFAULT_RETRIES = 3;
 
 function computeHostId(host: string): string {
 	return host.replace(/[:/]/g, "_");
 }
 
 /** Read the API key from the host-scoped credentials directory. */
-export function readApiKeyFile(configDir?: string, host = "api.musher.dev"): string | undefined {
+export function readApiKeyFile(dataDir?: string, host = "api.musher.dev"): string | undefined {
 	try {
-		const dir = configDir ?? resolveMusherDirs().config;
+		const dir = dataDir ?? resolveMusherDirs().data;
 		const filePath = join(dir, "credentials", computeHostId(host), "api-key");
 		const content = readFileSync(filePath, "utf-8").trim();
 		if (!content) return undefined;
@@ -82,8 +82,7 @@ function env(name: string): string | undefined {
 export function resolveConfig(config?: ClientConfig): ResolvedConfig {
 	const dirs = resolveMusherDirs();
 	const configDir = config?.configDir ?? dirs.config;
-	const baseUrl =
-		config?.baseUrl ?? env("MUSHER_API_URL") ?? env("MUSHER_BASE_URL") ?? DEFAULT_BASE_URL;
+	const baseUrl = config?.baseUrl ?? env("MUSHER_API_URL") ?? DEFAULT_BASE_URL;
 
 	let keyringHost: string;
 	try {
@@ -98,7 +97,7 @@ export function resolveConfig(config?: ClientConfig): ResolvedConfig {
 			config?.apiKey ??
 			env("MUSHER_API_KEY") ??
 			readKeyring(keyringHost) ??
-			readApiKeyFile(configDir, keyringHost),
+			readApiKeyFile(dirs.data, keyringHost),
 		cacheDir: config?.cacheDir ?? dirs.cache,
 		configDir,
 		manifestTtlSeconds: config?.manifestTtlSeconds ?? DEFAULT_MANIFEST_TTL,
