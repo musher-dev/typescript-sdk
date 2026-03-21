@@ -15,17 +15,46 @@ npm install @musher-dev/musher-sdk
 ```
 
 ```typescript
+import { pull } from "@musher-dev/musher-sdk";
+
+// Pull a bundle — resolves, downloads, verifies integrity, and caches locally
+const bundle = await pull("acme/code-review-kit:1.2.0");
+
+// Read a prompt by name
+console.log(bundle.prompt("system").content());
+
+// Access a skill
+const skill = bundle.skill("lint-rules");
+console.log(skill.definition()?.text());
+
+// Raw file access
+const file = bundle.file("prompts/system.md");
+console.log(file?.text());
+```
+
+Resolve metadata without downloading:
+
+```typescript
+import { resolve } from "@musher-dev/musher-sdk";
+
+const meta = await resolve("acme/code-review-kit:1.2.0");
+console.log(meta.version);
+```
+
+Use `MusherClient` directly when you need custom configuration:
+
+```typescript
 import { MusherClient } from "@musher-dev/musher-sdk";
 
-const client = new MusherClient({ apiKey: process.env.MUSHER_API_KEY });
+const client = new MusherClient({
+  cacheDir: "/tmp/musher-cache",
+  manifestTtlSeconds: 3600,
+});
 
-// Pull and cache a bundle
-const bundle = await client.pull("acme/my-agent-skills");
-
-// Load assets into memory
-const loaded = await client.load("acme/my-agent-skills", "1.0.0");
-const prompt = loaded.getAsset("prompts/system.md");
+const bundle = await client.pull("acme/code-review-kit:1.2.0");
 ```
+
+See [`examples/`](./examples/) for more complete runnable examples including Claude, OpenAI, and VS Code integrations.
 
 ## Development
 
