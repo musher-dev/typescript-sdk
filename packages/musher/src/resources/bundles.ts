@@ -48,13 +48,22 @@ export class BundlesResource {
 		);
 	}
 
-	async resolve(namespace: string, bundle: string, version?: string): Promise<BundleResolveOutput> {
+	async resolve(
+		namespace: string,
+		bundle: string,
+		version?: string,
+		digest?: string,
+	): Promise<BundleResolveOutput> {
+		const params: Record<string, string> = {};
+		if (version) params.version = version;
+		if (digest) params.digest = digest;
+
 		return this.http.request(
 			"GET",
 			`/v1/namespaces/${enc(namespace)}/bundles/${enc(bundle)}:resolve`,
 			BundleResolveOutputSchema,
 			{
-				params: version ? { version } : undefined,
+				params: Object.keys(params).length > 0 ? params : undefined,
 			},
 		);
 	}

@@ -99,7 +99,7 @@ export class HttpTransport {
 		if (this.config.token) {
 			headers.Authorization = `Bearer ${this.config.token}`;
 		} else if (this.config.apiKey) {
-			headers["X-API-Key"] = this.config.apiKey;
+			headers.Authorization = `Bearer ${this.config.apiKey}`;
 		}
 
 		return headers;

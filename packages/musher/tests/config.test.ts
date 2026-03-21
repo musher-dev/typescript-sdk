@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,15 +16,7 @@ describe("resolveConfig", () => {
 	const envBackup: Record<string, string | undefined> = {};
 
 	beforeEach(() => {
-		for (const key of [
-			"MUSHER_API_URL",
-			"MUSHER_BASE_URL",
-			"MUSHER_API_KEY",
-			"MUSHER_TOKEN",
-			"MUSH_BASE_URL",
-			"MUSH_API_KEY",
-			"MUSH_TOKEN",
-		]) {
+		for (const key of ["MUSHER_API_URL", "MUSHER_BASE_URL", "MUSHER_API_KEY", "MUSHER_TOKEN"]) {
 			envBackup[key] = process.env[key];
 			process.env[key] = "";
 		}
@@ -67,56 +59,33 @@ describe("resolveConfig", () => {
 		expect(config.retries).toBe(0);
 	});
 
-	it("MUSHER_API_URL takes precedence over MUSHER_BASE_URL and MUSH_BASE_URL", () => {
+	it("MUSHER_API_URL takes precedence over MUSHER_BASE_URL", () => {
 		process.env.MUSHER_API_URL = "https://api-url.dev";
 		process.env.MUSHER_BASE_URL = "https://base-url.dev";
-		process.env.MUSH_BASE_URL = "https://mush.dev";
 		const config = resolveConfig();
 		expect(config.baseUrl).toBe("https://api-url.dev");
 	});
 
 	it("falls back to MUSHER_BASE_URL when MUSHER_API_URL is not set", () => {
 		process.env.MUSHER_BASE_URL = "https://base-url.dev";
-		process.env.MUSH_BASE_URL = "https://mush.dev";
 		const config = resolveConfig();
 		expect(config.baseUrl).toBe("https://base-url.dev");
 	});
 
-	it("falls back to MUSH_BASE_URL as last resort", () => {
-		process.env.MUSH_BASE_URL = "https://mush.dev";
-		const config = resolveConfig();
-		expect(config.baseUrl).toBe("https://mush.dev");
-	});
-
-	it("MUSHER_API_KEY takes precedence over MUSH_API_KEY", () => {
+	it("reads MUSHER_API_KEY from env", () => {
 		process.env.MUSHER_API_KEY = "musher-key";
-		process.env.MUSH_API_KEY = "mush-key";
 		const config = resolveConfig();
 		expect(config.apiKey).toBe("musher-key");
 	});
 
-	it("falls back to MUSH_API_KEY when MUSHER_API_KEY is not set", () => {
-		process.env.MUSH_API_KEY = "mush-key";
-		const config = resolveConfig();
-		expect(config.apiKey).toBe("mush-key");
-	});
-
-	it("MUSHER_TOKEN takes precedence over MUSH_TOKEN", () => {
+	it("reads MUSHER_TOKEN from env", () => {
 		process.env.MUSHER_TOKEN = "musher-token";
-		process.env.MUSH_TOKEN = "mush-token";
 		const config = resolveConfig();
 		expect(config.token).toBe("musher-token");
 	});
 
-	it("falls back to MUSH_TOKEN when MUSHER_TOKEN is not set", () => {
-		process.env.MUSH_TOKEN = "mush-token";
-		const config = resolveConfig();
-		expect(config.token).toBe("mush-token");
-	});
-
-	it("constructor values take precedence over all env vars", () => {
+	it("constructor values take precedence over env vars", () => {
 		process.env.MUSHER_API_KEY = "env-key";
-		process.env.MUSH_API_KEY = "mush-key";
 		const config = resolveConfig({ apiKey: "constructor-key" });
 		expect(config.apiKey).toBe("constructor-key");
 	});
@@ -128,7 +97,7 @@ describe("resolveConfig", () => {
 	});
 
 	it("env vars take precedence over keyring", () => {
-		process.env.MUSH_API_KEY = "env-key";
+		process.env.MUSHER_API_KEY = "env-key";
 		mockedReadKeyring.mockReturnValue("keyring-key");
 		const config = resolveConfig();
 		expect(config.apiKey).toBe("env-key");
@@ -154,7 +123,8 @@ describe("readApiKeyFile", () => {
 	});
 
 	it("reads api-key file from config dir", () => {
-		writeFileSync(join(tempDir, "api-key"), "  file-api-key  \n");
+		const filePath = join(tempDir, "api-key");
+		writeFileSync(filePath, "  file-api-key  \n", { mode: 0o600 });
 		const result = readApiKeyFile(tempDir);
 		expect(result).toBe("file-api-key");
 	});
@@ -168,5 +138,24 @@ describe("readApiKeyFile", () => {
 		writeFileSync(join(tempDir, "api-key"), "   \n");
 		const result = readApiKeyFile(tempDir);
 		expect(result).toBeUndefined();
+	});
+
+	it.skipIf(process.platform === "win32")(
+		"returns undefined when file is readable by group or others",
+		() => {
+			const filePath = join(tempDir, "api-key");
+			writeFileSync(filePath, "secret-key");
+			chmodSync(filePath, 0o644);
+			const result = readApiKeyFile(tempDir);
+			expect(result).toBeUndefined();
+		},
+	);
+
+	it.skipIf(process.platform === "win32")("reads file when permissions are owner-only", () => {
+		const filePath = join(tempDir, "api-key");
+		writeFileSync(filePath, "secret-key");
+		chmodSync(filePath, 0o600);
+		const result = readApiKeyFile(tempDir);
+		expect(result).toBe("secret-key");
 	});
 });

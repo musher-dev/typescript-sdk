@@ -2,7 +2,7 @@
  * Client configuration with env-var resolution.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { readKeyring } from "./keyring.js";
 import { resolveMusherDirs } from "./paths.js";
@@ -50,8 +50,23 @@ const DEFAULT_RETRIES = 2;
 export function readApiKeyFile(configDir?: string): string | undefined {
 	try {
 		const dir = configDir ?? resolveMusherDirs().config;
-		const content = readFileSync(join(dir, "api-key"), "utf-8").trim();
-		return content || undefined;
+		const filePath = join(dir, "api-key");
+		const content = readFileSync(filePath, "utf-8").trim();
+		if (!content) return undefined;
+
+		// On Unix, reject files readable by group or others
+		if (process.platform !== "win32") {
+			const mode = statSync(filePath).mode;
+			if (mode & 0o077) {
+				process.emitWarning(
+					`Ignoring ${filePath}: file permissions are too open (must not be readable by group or others). Run: chmod 600 ${filePath}`,
+					"MusherSecurityWarning",
+				);
+				return undefined;
+			}
+		}
+
+		return content;
 	} catch {
 		return undefined;
 	}
@@ -66,21 +81,24 @@ function env(name: string): string | undefined {
 export function resolveConfig(config?: ClientConfig): ResolvedConfig {
 	const dirs = resolveMusherDirs();
 	const configDir = config?.configDir ?? dirs.config;
+	const baseUrl =
+		config?.baseUrl ?? env("MUSHER_API_URL") ?? env("MUSHER_BASE_URL") ?? DEFAULT_BASE_URL;
+
+	let keyringHost: string;
+	try {
+		keyringHost = new URL(baseUrl).host;
+	} catch {
+		keyringHost = "api.musher.dev";
+	}
 
 	return {
-		baseUrl:
-			config?.baseUrl ??
-			env("MUSHER_API_URL") ??
-			env("MUSHER_BASE_URL") ??
-			env("MUSH_BASE_URL") ??
-			DEFAULT_BASE_URL,
+		baseUrl,
 		apiKey:
 			config?.apiKey ??
 			env("MUSHER_API_KEY") ??
-			env("MUSH_API_KEY") ??
-			readKeyring() ??
+			readKeyring(keyringHost) ??
 			readApiKeyFile(configDir),
-		token: config?.token ?? env("MUSHER_TOKEN") ?? env("MUSH_TOKEN"),
+		token: config?.token ?? env("MUSHER_TOKEN"),
 		cacheDir: config?.cacheDir ?? dirs.cache,
 		configDir,
 		manifestTtlSeconds: config?.manifestTtlSeconds ?? DEFAULT_MANIFEST_TTL,

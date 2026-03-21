@@ -5,9 +5,11 @@
  * into a single facade with high-level pull/load convenience methods.
  */
 
+import { createHash } from "node:crypto";
 import { Bundle } from "./bundle.js";
 import { BundleCache } from "./cache.js";
 import { type ClientConfig, resolveConfig } from "./config.js";
+import { IntegrityError } from "./errors.js";
 import { HttpTransport } from "./http.js";
 import { BundleRef } from "./ref.js";
 import { BundlesResource } from "./resources/bundles.js";
@@ -43,15 +45,25 @@ export class MusherClient {
 	async pull(ref: string, version?: string): Promise<Bundle> {
 		const parsed = BundleRef.parse(ref);
 		const resolvedVersion = version ?? parsed.version;
-		const resolved = await this.bundles.resolve(parsed.namespace, parsed.slug, resolvedVersion);
+		const resolved = await this.bundles.resolve(
+			parsed.namespace,
+			parsed.slug,
+			resolvedVersion,
+			parsed.digest,
+		);
 
-		// Download asset contents as Buffers
+		// Download asset contents as Buffers, verifying integrity before caching
 		const assets = new Map<string, Buffer>();
 		if (resolved.manifest?.layers) {
 			for (const layer of resolved.manifest.layers) {
 				const asset = await this.bundles.getAsset(parsed.namespace, parsed.slug, layer.logicalPath);
 				if (asset.contentText != null) {
-					assets.set(layer.logicalPath, Buffer.from(asset.contentText, "utf-8"));
+					const buf = Buffer.from(asset.contentText, "utf-8");
+					const hash = createHash("sha256").update(buf).digest("hex");
+					if (hash !== layer.contentSha256) {
+						throw new IntegrityError(layer.contentSha256, hash);
+					}
+					assets.set(layer.logicalPath, buf);
 				}
 			}
 		}
@@ -77,7 +89,7 @@ export class MusherClient {
 	async resolve(ref: string, version?: string): Promise<BundleResolveOutput> {
 		const parsed = BundleRef.parse(ref);
 		const resolvedVersion = version ?? parsed.version;
-		return this.bundles.resolve(parsed.namespace, parsed.slug, resolvedVersion);
+		return this.bundles.resolve(parsed.namespace, parsed.slug, resolvedVersion, parsed.digest);
 	}
 
 	/**
