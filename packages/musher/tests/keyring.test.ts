@@ -21,7 +21,7 @@ describe("readKeyring", () => {
 		expect(result).toBe("my-secret-key");
 		expect(mockedExecFileSync).toHaveBeenCalledWith(
 			"security",
-			["find-generic-password", "-s", "dev.musher.mush", "-a", "api-key", "-w"],
+			["find-generic-password", "-s", "dev.musher.musher", "-a", "api-key", "-w"],
 			expect.objectContaining({ timeout: 5_000 }),
 		);
 
@@ -38,7 +38,7 @@ describe("readKeyring", () => {
 		expect(result).toBe("linux-key");
 		expect(mockedExecFileSync).toHaveBeenCalledWith(
 			"secret-tool",
-			["lookup", "service", "dev.musher.mush", "username", "api-key"],
+			["lookup", "service", "dev.musher.musher", "username", "api-key"],
 			expect.objectContaining({ timeout: 5_000 }),
 		);
 

@@ -17,7 +17,8 @@ describe("resolveConfig", () => {
 	it("applies defaults when no config provided", () => {
 		const config = resolveConfig();
 		expect(config.baseUrl).toBe("https://api.musher.dev");
-		expect(config.cacheTtlSeconds).toBe(3600);
+		expect(config.manifestTtlSeconds).toBe(86_400);
+		expect(config.refTtlSeconds).toBe(300);
 		expect(config.timeout).toBe(30_000);
 		expect(config.retries).toBe(2);
 	});
@@ -25,12 +26,14 @@ describe("resolveConfig", () => {
 	it("overrides defaults with provided values", () => {
 		const config = resolveConfig({
 			baseUrl: "https://custom.dev",
-			cacheTtlSeconds: 7200,
+			manifestTtlSeconds: 7200,
+			refTtlSeconds: 60,
 			timeout: 5000,
 			retries: 0,
 		});
 		expect(config.baseUrl).toBe("https://custom.dev");
-		expect(config.cacheTtlSeconds).toBe(7200);
+		expect(config.manifestTtlSeconds).toBe(7200);
+		expect(config.refTtlSeconds).toBe(60);
 		expect(config.timeout).toBe(5000);
 		expect(config.retries).toBe(0);
 	});

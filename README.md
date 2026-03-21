@@ -6,16 +6,16 @@ Official TypeScript SDK for the [Musher](https://musher.dev) platform.
 
 | Package | Description |
 |---------|-------------|
-| [`@musher-dev/musher`](./packages/musher/) | Bundle loader and cache client |
+| [`@musher-dev/musher-sdk`](./packages/musher/) | Bundle loader and cache client |
 
 ## Quick Start
 
 ```bash
-npm install @musher-dev/musher
+npm install @musher-dev/musher-sdk
 ```
 
 ```typescript
-import { MusherClient } from "@musher-dev/musher";
+import { MusherClient } from "@musher-dev/musher-sdk";
 
 const client = new MusherClient({ apiKey: process.env.MUSHER_API_KEY });
 

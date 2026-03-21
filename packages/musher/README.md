@@ -1,17 +1,17 @@
-# @musher-dev/musher
+# @musher-dev/musher-sdk
 
 Official TypeScript SDK for the [Musher](https://musher.dev) platform. Pull, cache, and load bundled AI agent assets (skills, prompts, tool configs) from the Musher Hub.
 
 ## Install
 
 ```bash
-npm install @musher-dev/musher
+npm install @musher-dev/musher-sdk
 ```
 
 ## Usage
 
 ```typescript
-import { MusherClient } from "@musher-dev/musher";
+import { MusherClient } from "@musher-dev/musher-sdk";
 
 const client = new MusherClient({
   apiKey: process.env.MUSHER_API_KEY,

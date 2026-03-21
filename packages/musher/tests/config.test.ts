@@ -8,7 +8,7 @@ vi.mock("../src/keyring.js", () => ({
 	readKeyring: vi.fn(() => undefined),
 }));
 
-const { resolveConfig, getDefaultConfigDir, readApiKeyFile } = await import("../src/config.js");
+const { resolveConfig, readApiKeyFile } = await import("../src/config.js");
 const { readKeyring } = await import("../src/keyring.js");
 const mockedReadKeyring = vi.mocked(readKeyring);
 
@@ -17,6 +17,7 @@ describe("resolveConfig", () => {
 
 	beforeEach(() => {
 		for (const key of [
+			"MUSHER_API_URL",
 			"MUSHER_BASE_URL",
 			"MUSHER_API_KEY",
 			"MUSHER_TOKEN",
@@ -39,22 +40,52 @@ describe("resolveConfig", () => {
 	it("applies defaults when no config provided", () => {
 		const config = resolveConfig();
 		expect(config.baseUrl).toBe("https://api.musher.dev");
-		expect(config.cacheTtlSeconds).toBe(3600);
+		expect(config.manifestTtlSeconds).toBe(86_400);
+		expect(config.refTtlSeconds).toBe(300);
 		expect(config.timeout).toBe(30_000);
 		expect(config.retries).toBe(2);
+	});
+
+	it("includes configDir in resolved config", () => {
+		const config = resolveConfig();
+		expect(config.configDir).toBeDefined();
+		expect(typeof config.configDir).toBe("string");
 	});
 
 	it("overrides defaults with provided values", () => {
 		const config = resolveConfig({
 			baseUrl: "https://custom.dev",
-			cacheTtlSeconds: 7200,
+			manifestTtlSeconds: 7200,
+			refTtlSeconds: 60,
 			timeout: 5000,
 			retries: 0,
 		});
 		expect(config.baseUrl).toBe("https://custom.dev");
-		expect(config.cacheTtlSeconds).toBe(7200);
+		expect(config.manifestTtlSeconds).toBe(7200);
+		expect(config.refTtlSeconds).toBe(60);
 		expect(config.timeout).toBe(5000);
 		expect(config.retries).toBe(0);
+	});
+
+	it("MUSHER_API_URL takes precedence over MUSHER_BASE_URL and MUSH_BASE_URL", () => {
+		process.env.MUSHER_API_URL = "https://api-url.dev";
+		process.env.MUSHER_BASE_URL = "https://base-url.dev";
+		process.env.MUSH_BASE_URL = "https://mush.dev";
+		const config = resolveConfig();
+		expect(config.baseUrl).toBe("https://api-url.dev");
+	});
+
+	it("falls back to MUSHER_BASE_URL when MUSHER_API_URL is not set", () => {
+		process.env.MUSHER_BASE_URL = "https://base-url.dev";
+		process.env.MUSH_BASE_URL = "https://mush.dev";
+		const config = resolveConfig();
+		expect(config.baseUrl).toBe("https://base-url.dev");
+	});
+
+	it("falls back to MUSH_BASE_URL as last resort", () => {
+		process.env.MUSH_BASE_URL = "https://mush.dev";
+		const config = resolveConfig();
+		expect(config.baseUrl).toBe("https://mush.dev");
 	});
 
 	it("MUSHER_API_KEY takes precedence over MUSH_API_KEY", () => {
@@ -83,19 +114,6 @@ describe("resolveConfig", () => {
 		expect(config.token).toBe("mush-token");
 	});
 
-	it("MUSHER_BASE_URL takes precedence over MUSH_BASE_URL", () => {
-		process.env.MUSHER_BASE_URL = "https://musher.example.com";
-		process.env.MUSH_BASE_URL = "https://mush.example.com";
-		const config = resolveConfig();
-		expect(config.baseUrl).toBe("https://musher.example.com");
-	});
-
-	it("falls back to MUSH_BASE_URL when MUSHER_BASE_URL is not set", () => {
-		process.env.MUSH_BASE_URL = "https://mush.example.com";
-		const config = resolveConfig();
-		expect(config.baseUrl).toBe("https://mush.example.com");
-	});
-
 	it("constructor values take precedence over all env vars", () => {
 		process.env.MUSHER_API_KEY = "env-key";
 		process.env.MUSH_API_KEY = "mush-key";
@@ -115,33 +133,12 @@ describe("resolveConfig", () => {
 		const config = resolveConfig();
 		expect(config.apiKey).toBe("env-key");
 	});
-});
 
-describe("getDefaultConfigDir", () => {
-	it("uses XDG_CONFIG_HOME when set", () => {
-		const original = process.env.XDG_CONFIG_HOME;
-		process.env.XDG_CONFIG_HOME = "/custom/config";
-		const dir = getDefaultConfigDir();
-		expect(dir).toBe("/custom/config/mush");
-		process.env.XDG_CONFIG_HOME = original ?? "";
-	});
-
-	it("falls back to ~/.config/mush on unix", () => {
-		const originalXdg = process.env.XDG_CONFIG_HOME;
-		const originalHome = process.env.HOME;
-		const originalPlatform = process.platform;
-
-		// Setting to empty string effectively unsets (empty string is falsy)
-		process.env.XDG_CONFIG_HOME = "";
-		process.env.HOME = "/home/testuser";
-		Object.defineProperty(process, "platform", { value: "linux" });
-
-		const dir = getDefaultConfigDir();
-		expect(dir).toBe("/home/testuser/.config/mush");
-
-		Object.defineProperty(process, "platform", { value: originalPlatform });
-		process.env.HOME = originalHome;
-		process.env.XDG_CONFIG_HOME = originalXdg;
+	it("auto-discovers auth when only non-auth fields are configured", () => {
+		mockedReadKeyring.mockReturnValue("keyring-key");
+		const config = resolveConfig({ baseUrl: "https://custom.dev" });
+		expect(config.baseUrl).toBe("https://custom.dev");
+		expect(config.apiKey).toBe("keyring-key");
 	});
 });
 

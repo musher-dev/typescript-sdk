@@ -1,5 +1,5 @@
 /**
- * OS keyring helper — reads API key from the same keyring used by the `mush` CLI.
+ * OS keyring helper — reads API key from the shared musher platform keyring.
  *
  * Uses `node:child_process` to invoke OS-native credential stores.
  * Returns `undefined` silently on any failure (keyring is best-effort).
@@ -7,7 +7,7 @@
 
 import { execFileSync } from "node:child_process";
 
-const SERVICE = "dev.musher.mush";
+const SERVICE = "dev.musher.musher";
 const ACCOUNT = "api-key";
 
 /**

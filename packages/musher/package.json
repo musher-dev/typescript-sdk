@@ -1,5 +1,5 @@
 {
-	"name": "@musher-dev/musher",
+	"name": "@musher-dev/musher-sdk",
 	"version": "0.0.0",
 	"description": "Official TypeScript SDK for the Musher platform — bundle loader and cache client",
 	"license": "MIT",
@@ -7,8 +7,8 @@
 	"exports": {
 		".": {
 			"import": {
-				"types": "./dist/index.d.mts",
-				"default": "./dist/index.mjs"
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
 			},
 			"require": {
 				"types": "./dist/index.d.cts",
@@ -17,8 +17,8 @@
 		}
 	},
 	"main": "./dist/index.cjs",
-	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.mts",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"files": ["dist"],
 	"scripts": {
 		"build": "tsup",

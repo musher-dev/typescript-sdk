@@ -24,7 +24,12 @@ export class MusherClient {
 	constructor(config?: ClientConfig) {
 		const resolved = resolveConfig(config);
 		this._http = new HttpTransport(resolved);
-		this._cache = new BundleCache(resolved.cacheDir, resolved.cacheTtlSeconds);
+		this._cache = new BundleCache(
+			resolved.cacheDir,
+			resolved.baseUrl,
+			resolved.manifestTtlSeconds,
+			resolved.refTtlSeconds,
+		);
 		this.bundles = new BundlesResource(this._http);
 	}
 
@@ -52,6 +57,14 @@ export class MusherClient {
 		}
 
 		await this._cache.write(resolved, assets);
+
+		// Cache the ref → version mapping, but NEVER for digest-based lookups
+		// (digest refs must not overwrite aliases like "latest")
+		if (!parsed.digest) {
+			const refAlias = resolvedVersion ?? "latest";
+			await this._cache.cacheRef(parsed.namespace, parsed.slug, refAlias, resolved.version);
+		}
+
 		return new Bundle(resolved, assets);
 	}
 
@@ -82,9 +95,17 @@ export class MusherClient {
 		}
 
 		const parsed = BundleRef.parse(ref);
-		const resolvedVersion = version ?? parsed.version;
+		let resolvedVersion = version ?? parsed.version;
 
-		// If version is specified, check cache first
+		// For unversioned, non-digest refs, try the ref cache first
+		if (!resolvedVersion && !parsed.digest) {
+			const cachedVersion = await this._cache.resolveRef(parsed.namespace, parsed.slug, "latest");
+			if (cachedVersion) {
+				resolvedVersion = cachedVersion;
+			}
+		}
+
+		// If version is known, check manifest cache
 		if (resolvedVersion) {
 			const fresh = await this._cache.isFresh(parsed.namespace, parsed.slug, resolvedVersion);
 			if (fresh) {
@@ -99,7 +120,7 @@ export class MusherClient {
 
 	/** Cache management utilities. */
 	readonly cache = {
-		/** Remove expired cache entries. */
+		/** Remove expired cache entries and garbage-collect unreferenced blobs. */
 		clean: (): Promise<void> => this._cache.clean(),
 		/** Remove all cached data. */
 		purge: (): Promise<void> => this._cache.purge(),

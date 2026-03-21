@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readKeyring } from "./keyring.js";
+import { resolveMusherDirs } from "./paths.js";
 
 export interface ClientConfig {
 	/** Base URL for the Musher API. Default: https://api.musher.dev */
@@ -13,10 +14,14 @@ export interface ClientConfig {
 	apiKey?: string;
 	/** Bearer token authentication. Takes precedence over apiKey. */
 	token?: string;
-	/** Override XDG cache path. */
+	/** Override cache directory path. */
 	cacheDir?: string;
-	/** Cache TTL in seconds. Default: 3600 */
-	cacheTtlSeconds?: number;
+	/** Override config directory path. */
+	configDir?: string;
+	/** Manifest cache TTL in seconds. Default: 86400 (24 hours) */
+	manifestTtlSeconds?: number;
+	/** Ref cache TTL in seconds. Default: 300 (5 minutes) */
+	refTtlSeconds?: number;
 	/** Request timeout in milliseconds. Default: 30000 */
 	timeout?: number;
 	/** Number of retries on transient failures. Default: 2 */
@@ -28,43 +33,23 @@ export interface ResolvedConfig {
 	apiKey: string | undefined;
 	token: string | undefined;
 	cacheDir: string;
-	cacheTtlSeconds: number;
+	configDir: string;
+	manifestTtlSeconds: number;
+	refTtlSeconds: number;
 	timeout: number;
 	retries: number;
 }
 
 const DEFAULT_BASE_URL = "https://api.musher.dev";
-const DEFAULT_CACHE_TTL = 3600;
+const DEFAULT_MANIFEST_TTL = 86_400;
+const DEFAULT_REF_TTL = 300;
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_RETRIES = 2;
 
-function getDefaultCacheDir(): string {
-	const platform = process.platform;
-	if (platform === "win32") {
-		return `${process.env.LOCALAPPDATA ?? `${process.env.USERPROFILE}\\AppData\\Local`}\\musher\\cache`;
-	}
-	const xdg = process.env.XDG_CACHE_HOME;
-	if (xdg) return `${xdg}/musher`;
-	const home = process.env.HOME ?? "~";
-	return `${home}/.cache/musher`;
-}
-
-/** Resolve the mush CLI config directory. */
-export function getDefaultConfigDir(): string {
-	const platform = process.platform;
-	if (platform === "win32") {
-		return `${process.env.APPDATA ?? `${process.env.USERPROFILE}\\AppData\\Roaming`}\\mush`;
-	}
-	const xdg = process.env.XDG_CONFIG_HOME;
-	if (xdg) return `${xdg}/mush`;
-	const home = process.env.HOME ?? "~";
-	return `${home}/.config/mush`;
-}
-
-/** Read the API key from the mush CLI config file. */
+/** Read the API key from the musher config directory. */
 export function readApiKeyFile(configDir?: string): string | undefined {
 	try {
-		const dir = configDir ?? getDefaultConfigDir();
+		const dir = configDir ?? resolveMusherDirs().config;
 		const content = readFileSync(join(dir, "api-key"), "utf-8").trim();
 		return content || undefined;
 	} catch {
@@ -79,17 +64,27 @@ function env(name: string): string | undefined {
 }
 
 export function resolveConfig(config?: ClientConfig): ResolvedConfig {
+	const dirs = resolveMusherDirs();
+	const configDir = config?.configDir ?? dirs.config;
+
 	return {
-		baseUrl: config?.baseUrl ?? env("MUSHER_BASE_URL") ?? env("MUSH_BASE_URL") ?? DEFAULT_BASE_URL,
+		baseUrl:
+			config?.baseUrl ??
+			env("MUSHER_API_URL") ??
+			env("MUSHER_BASE_URL") ??
+			env("MUSH_BASE_URL") ??
+			DEFAULT_BASE_URL,
 		apiKey:
 			config?.apiKey ??
 			env("MUSHER_API_KEY") ??
 			env("MUSH_API_KEY") ??
 			readKeyring() ??
-			readApiKeyFile(),
+			readApiKeyFile(configDir),
 		token: config?.token ?? env("MUSHER_TOKEN") ?? env("MUSH_TOKEN"),
-		cacheDir: config?.cacheDir ?? getDefaultCacheDir(),
-		cacheTtlSeconds: config?.cacheTtlSeconds ?? DEFAULT_CACHE_TTL,
+		cacheDir: config?.cacheDir ?? dirs.cache,
+		configDir,
+		manifestTtlSeconds: config?.manifestTtlSeconds ?? DEFAULT_MANIFEST_TTL,
+		refTtlSeconds: config?.refTtlSeconds ?? DEFAULT_REF_TTL,
 		timeout: config?.timeout ?? DEFAULT_TIMEOUT,
 		retries: config?.retries ?? DEFAULT_RETRIES,
 	};

@@ -2,6 +2,10 @@
 export { MusherClient } from "./client.js";
 export type { ClientConfig } from "./config.js";
 
+// -- Paths --------------------------------------------------------------------
+export { resolveMusherDirs } from "./paths.js";
+export type { MusherDirs } from "./paths.js";
+
 // -- Core classes -------------------------------------------------------------
 export { Bundle } from "./bundle.js";
 export { BundleRef } from "./ref.js";
