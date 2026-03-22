@@ -1,5 +1,5 @@
 /**
- * Claude adapter — export plugin dirs and install skills to .claude/skills/.
+ * Claude Code adapter — export plugin dirs and install skills to .claude/skills/.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -8,12 +8,18 @@ import type { Bundle } from "../bundle.js";
 import type { Selection } from "../selection.js";
 
 /**
- * Export a Claude plugin directory structure from a Bundle or Selection.
+ * Export a Claude Code plugin directory structure from a Bundle or Selection.
+ *
+ * Produces the layout expected by Claude Code's plugin system:
+ *
+ *   <pluginDir>/.claude-plugin/plugin.json   — plugin metadata
+ *   <pluginDir>/skills/<name>/SKILL.md       — skill content
+ *
  * Returns the absolute path of the created plugin directory.
  */
 export async function exportClaudePlugin(
 	source: Bundle | Selection,
-	opts: { targetDir: string; name?: string },
+	opts: { targetDir: string; name?: string; description?: string },
 ): Promise<string> {
 	const bundle = "bundle" in source ? source.bundle : (source as Bundle);
 	const name = opts.name ?? bundle.ref.slug;
@@ -28,13 +34,16 @@ export async function exportClaudePlugin(
 		await writeFile(filePath, fh.bytes());
 	}
 
-	// Write a manifest.json for the plugin
+	// Write .claude-plugin/plugin.json (Claude Code plugin metadata)
+	const metaDir = join(pluginDir, ".claude-plugin");
+	await mkdir(metaDir, { recursive: true });
 	const manifest = {
 		name,
+		description: opts.description ?? "",
 		version: bundle.version,
 		files: files.map((f) => f.logicalPath),
 	};
-	await writeFile(join(pluginDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+	await writeFile(join(metaDir, "plugin.json"), JSON.stringify(manifest, null, 2));
 
 	return pluginDir;
 }
@@ -50,7 +59,7 @@ export async function installClaudeSkills(
 ): Promise<string[]> {
 	const source = "bundle" in bundle ? bundle.bundle : (bundle as Bundle);
 	const skillsDir = join(dir, ".claude", "skills");
-	const prefix = opts?.prefix ?? source.ref.slug;
+	const prefix = opts?.prefix ?? "";
 	const written: string[] = [];
 
 	const skills =

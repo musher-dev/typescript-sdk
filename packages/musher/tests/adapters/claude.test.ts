@@ -63,31 +63,55 @@ describe("Claude adapter", () => {
 		await rm(tempDir, { recursive: true, force: true });
 	});
 
-	it("exportClaudePlugin creates plugin dir", async () => {
+	it("exportClaudePlugin creates plugin dir with .claude-plugin/plugin.json", async () => {
 		const bundle = makeBundle();
 		const pluginDir = await exportClaudePlugin(bundle, { targetDir: tempDir });
 
 		expect(pluginDir).toContain("test-bundle");
-		const manifest = JSON.parse(await readFile(join(pluginDir, "manifest.json"), "utf-8"));
+		const manifest = JSON.parse(
+			await readFile(join(pluginDir, ".claude-plugin", "plugin.json"), "utf-8"),
+		);
 		expect(manifest.name).toBe("test-bundle");
+		expect(manifest.description).toBe("");
 		expect(manifest.files).toHaveLength(2);
 	});
 
-	it("exportClaudePlugin accepts custom name", async () => {
+	it("exportClaudePlugin accepts custom name and description", async () => {
 		const bundle = makeBundle();
 		const pluginDir = await exportClaudePlugin(bundle, {
 			targetDir: tempDir,
 			name: "custom-name",
+			description: "My custom plugin",
 		});
 		expect(pluginDir).toContain("custom-name");
+		const manifest = JSON.parse(
+			await readFile(join(pluginDir, ".claude-plugin", "plugin.json"), "utf-8"),
+		);
+		expect(manifest.name).toBe("custom-name");
+		expect(manifest.description).toBe("My custom plugin");
 	});
 
-	it("installClaudeSkills writes to .claude/skills/", async () => {
+	it("installClaudeSkills writes to .claude/skills/ with flat layout", async () => {
 		const bundle = makeBundle();
 		const written = await installClaudeSkills(bundle, tempDir);
 
-		expect(written.length).toBeGreaterThan(0);
-		const skillContent = await readFile(written[0]!, "utf-8");
-		expect(skillContent.length).toBeGreaterThan(0);
+		expect(written).toHaveLength(2);
+
+		// Skills should be directly under .claude/skills/<skill-name>/ (no slug prefix)
+		const expectedSkillMd = join(tempDir, ".claude", "skills", "review", "SKILL.md");
+		const expectedRefMd = join(tempDir, ".claude", "skills", "review", "refs", "notes.md");
+		expect(written).toContain(expectedSkillMd);
+		expect(written).toContain(expectedRefMd);
+
+		const skillContent = await readFile(expectedSkillMd, "utf-8");
+		expect(skillContent).toBe(SKILL_MD);
+	});
+
+	it("installClaudeSkills supports opt-in prefix", async () => {
+		const bundle = makeBundle();
+		const written = await installClaudeSkills(bundle, tempDir, { prefix: "acme" });
+
+		const expectedSkillMd = join(tempDir, ".claude", "skills", "acme", "review", "SKILL.md");
+		expect(written).toContain(expectedSkillMd);
 	});
 });

@@ -68,7 +68,7 @@ import {
   installVSCodeSkills,
 } from "@musher-dev/musher-sdk";
 
-// Claude — install skills into .claude/skills/
+// Claude Code — install skills into .claude/skills/<skill-name>/
 await installClaudeSkills(bundle, process.cwd());
 
 // OpenAI — export a skill for local shell agents

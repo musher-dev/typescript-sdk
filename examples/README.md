@@ -22,7 +22,7 @@ npx tsx examples/basics/pull-bundle.ts
 | `basics/resolve-bundle.ts` | Working | Resolve metadata without downloading |
 | `basics/verify-and-lock-bundle.ts` | Working | Verify SHA-256 integrity and write a lockfile |
 | `claude/install-project-skills.ts` | Working | Install skills into `.claude/skills/` |
-| `claude/export-plugin.ts` | Preview | Export a Claude plugin directory |
+| `claude/export-plugin.ts` | Working | Export a Claude Code plugin directory |
 | `openai/local-shell-skill.ts` | Working | Export a skill as local files for OpenAI Agents |
 | `openai/hosted-inline-skill.ts` | Preview | Export a skill as an inline base64 ZIP |
 | `ide/install-vscode-skills.ts` | Working | Install skills into a VS Code skill tree |
