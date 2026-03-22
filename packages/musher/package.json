@@ -27,14 +27,20 @@
 		"check:lint": "biome lint .",
 		"check:types": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
 		"check:test": "vitest run",
+		"check:exports": "knip",
+		"check:publint": "publint",
+		"check:attw": "attw --pack .",
 		"clean": "rm -rf dist"
 	},
 	"dependencies": {
 		"zod": "^3.24.0"
 	},
 	"devDependencies": {
+		"@arethetypeswrong/cli": "^0.18.2",
 		"@biomejs/biome": "^1.9.4",
 		"@types/node": "^25.5.0",
+		"knip": "^6.0.1",
+		"publint": "^0.3.18",
 		"tsup": "^8.3.0",
 		"typescript": "^5.7.0",
 		"vitest": "^2.1.0"
@@ -44,7 +50,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/musher-dev/typescript-sdk.git",
+		"url": "git+https://github.com/musher-dev/typescript-sdk.git",
 		"directory": "packages/musher"
 	},
 	"keywords": ["musher", "bundle", "sdk", "ai", "agent"]

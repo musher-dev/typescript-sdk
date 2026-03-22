@@ -36,7 +36,9 @@ function env(name: string): string | undefined {
 /** Return the env var value only if it is an absolute path. */
 function absEnv(name: string): string | undefined {
 	const value = env(name);
-	if (value && isAbsolute(value)) return value;
+	if (value && isAbsolute(value)) {
+		return value;
+	}
 	return undefined;
 }
 
@@ -44,11 +46,15 @@ function absEnv(name: string): string | undefined {
 function resolveDir(envKey: string, subdir: string, platformDefault: () => string): string {
 	// 1. Per-directory override: MUSHER_<TYPE>_HOME
 	const perDir = absEnv(envKey);
-	if (perDir) return perDir;
+	if (perDir) {
+		return perDir;
+	}
 
 	// 2. Umbrella override: MUSHER_HOME/<subdir>
 	const umbrella = absEnv("MUSHER_HOME");
-	if (umbrella) return join(umbrella, subdir);
+	if (umbrella) {
+		return join(umbrella, subdir);
+	}
 
 	// 3. Platform default
 	return platformDefault();
@@ -57,7 +63,9 @@ function resolveDir(envKey: string, subdir: string, platformDefault: () => strin
 /** XDG-aware default — returns the XDG path if set and absolute, otherwise the fallback. */
 function xdgDefault(xdgVar: string, fallbackSuffix: string): string {
 	const xdg = absEnv(xdgVar);
-	if (xdg) return join(xdg, APP_NAME);
+	if (xdg) {
+		return join(xdg, APP_NAME);
+	}
 	return join(homedir(), fallbackSuffix, APP_NAME);
 }
 
@@ -75,7 +83,9 @@ function linuxDirs(): MusherDirs {
 		),
 		runtime: resolveDir("MUSHER_RUNTIME_DIR", "runtime", () => {
 			const xdg = absEnv("XDG_RUNTIME_DIR");
-			if (xdg) return join(xdg, APP_NAME);
+			if (xdg) {
+				return join(xdg, APP_NAME);
+			}
 			return join(tmpdir(), APP_NAME, "run");
 		}),
 	};

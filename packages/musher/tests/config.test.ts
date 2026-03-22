@@ -60,19 +60,19 @@ describe("resolveConfig", () => {
 	});
 
 	it("reads base URL from MUSHER_API_URL env var", () => {
-		process.env.MUSHER_API_URL = "https://api-url.dev";
+		process.env["MUSHER_API_URL"] = "https://api-url.dev";
 		const config = resolveConfig();
 		expect(config.baseUrl).toBe("https://api-url.dev");
 	});
 
 	it("reads MUSHER_API_KEY from env", () => {
-		process.env.MUSHER_API_KEY = "musher-key";
+		process.env["MUSHER_API_KEY"] = "musher-key";
 		const config = resolveConfig();
 		expect(config.apiKey).toBe("musher-key");
 	});
 
 	it("constructor values take precedence over env vars", () => {
-		process.env.MUSHER_API_KEY = "env-key";
+		process.env["MUSHER_API_KEY"] = "env-key";
 		const config = resolveConfig({ apiKey: "constructor-key" });
 		expect(config.apiKey).toBe("constructor-key");
 	});
@@ -84,7 +84,7 @@ describe("resolveConfig", () => {
 	});
 
 	it("env vars take precedence over keyring", () => {
-		process.env.MUSHER_API_KEY = "env-key";
+		process.env["MUSHER_API_KEY"] = "env-key";
 		mockedReadKeyring.mockReturnValue("keyring-key");
 		const config = resolveConfig();
 		expect(config.apiKey).toBe("env-key");

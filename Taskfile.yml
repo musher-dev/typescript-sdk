@@ -39,6 +39,23 @@ tasks:
     cmds:
       - pnpm -r check:test
 
+  check:exports:
+    desc: Check for unused exports with knip
+    cmds:
+      - pnpm -r check:exports
+
+  check:publint:
+    desc: Validate package publishing metadata
+    deps: [build]
+    cmds:
+      - pnpm -r check:publint
+
+  check:attw:
+    desc: Verify package type correctness (ESM+CJS)
+    deps: [build]
+    cmds:
+      - pnpm -r check:attw
+
   clean:
     desc: Clean build artifacts
     cmds:

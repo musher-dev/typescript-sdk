@@ -97,7 +97,7 @@ export class MusherClient {
 		let resolvedVersion = version ?? parsed.version;
 
 		// For unversioned, non-digest refs, try the ref cache first
-		if (!resolvedVersion && !parsed.digest) {
+		if (!(resolvedVersion || parsed.digest)) {
 			const cachedVersion = await this._cache.resolveRef(parsed.namespace, parsed.slug, "latest");
 			if (cachedVersion) {
 				resolvedVersion = cachedVersion;
@@ -113,7 +113,9 @@ export class MusherClient {
 					parsed.slug,
 					resolvedVersion,
 				);
-				if (manifest) return manifest;
+				if (manifest) {
+					return manifest;
+				}
 			}
 		}
 
@@ -155,7 +157,7 @@ export class MusherClient {
 		let resolvedVersion = version ?? parsed.version;
 
 		// For unversioned, non-digest refs, try the ref cache first
-		if (!resolvedVersion && !parsed.digest) {
+		if (!(resolvedVersion || parsed.digest)) {
 			const cachedVersion = await this._cache.resolveRef(parsed.namespace, parsed.slug, "latest");
 			if (cachedVersion) {
 				resolvedVersion = cachedVersion;
@@ -167,7 +169,9 @@ export class MusherClient {
 			const fresh = await this._cache.isFresh(parsed.namespace, parsed.slug, resolvedVersion);
 			if (fresh) {
 				const loaded = await this._cache.load(parsed.namespace, parsed.slug, resolvedVersion);
-				if (loaded) return loaded;
+				if (loaded) {
+					return loaded;
+				}
 			}
 		}
 

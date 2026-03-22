@@ -20,6 +20,9 @@ export {
 	ToolsetHandle,
 } from "./handles/index.js";
 
+// -- Frontmatter --------------------------------------------------------------
+export { extractDescription, parseFrontmatter, type FrontmatterResult } from "./frontmatter.js";
+
 // -- Adapters -----------------------------------------------------------------
 export {
 	exportClaudePlugin,

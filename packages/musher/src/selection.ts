@@ -41,7 +41,9 @@ export class Selection {
 			for (const name of this._filter.skills) {
 				const skill = this._bundle.skills().find((s) => s.name === name);
 				if (skill) {
-					for (const f of skill.files()) addFile(f);
+					for (const f of skill.files()) {
+						addFile(f);
+					}
 				}
 			}
 		}
@@ -50,7 +52,9 @@ export class Selection {
 			for (const name of this._filter.prompts) {
 				const prompt = this._bundle.prompts().find((p) => p.name === name);
 				if (prompt) {
-					for (const f of prompt.files()) addFile(f);
+					for (const f of prompt.files()) {
+						addFile(f);
+					}
 				}
 			}
 		}
@@ -59,7 +63,9 @@ export class Selection {
 			for (const name of this._filter.toolsets) {
 				const toolset = this._bundle.toolsets().find((t) => t.name === name);
 				if (toolset) {
-					for (const f of toolset.files()) addFile(f);
+					for (const f of toolset.files()) {
+						addFile(f);
+					}
 				}
 			}
 		}
@@ -68,7 +74,9 @@ export class Selection {
 			for (const name of this._filter.agentSpecs) {
 				const spec = this._bundle.agentSpecs().find((a) => a.name === name);
 				if (spec) {
-					for (const f of spec.files()) addFile(f);
+					for (const f of spec.files()) {
+						addFile(f);
+					}
 				}
 			}
 		}
@@ -76,7 +84,9 @@ export class Selection {
 		if (this._filter.paths) {
 			for (const path of this._filter.paths) {
 				const fh = this._bundle.file(path);
-				if (fh) addFile(fh);
+				if (fh) {
+					addFile(fh);
+				}
 			}
 		}
 
@@ -85,25 +95,33 @@ export class Selection {
 
 	skills(): SkillHandle[] {
 		const names = this._filter.skills;
-		if (!names) return [];
+		if (!names) {
+			return [];
+		}
 		return this._bundle.skills().filter((s) => names.includes(s.name));
 	}
 
 	prompts(): PromptHandle[] {
 		const names = this._filter.prompts;
-		if (!names) return [];
+		if (!names) {
+			return [];
+		}
 		return this._bundle.prompts().filter((p) => names.includes(p.name));
 	}
 
 	toolsets(): ToolsetHandle[] {
 		const names = this._filter.toolsets;
-		if (!names) return [];
+		if (!names) {
+			return [];
+		}
 		return this._bundle.toolsets().filter((t) => names.includes(t.name));
 	}
 
 	agentSpecs(): AgentSpecHandle[] {
 		const names = this._filter.agentSpecs;
-		if (!names) return [];
+		if (!names) {
+			return [];
+		}
 		return this._bundle.agentSpecs().filter((a) => names.includes(a.name));
 	}
 
@@ -126,8 +144,19 @@ export class Selection {
 	async exportClaudePlugin(opts: {
 		targetDir: string;
 		name?: string;
+		description?: string;
 	}): Promise<string> {
 		const { exportClaudePlugin } = await import("./adapters/claude.js");
 		return exportClaudePlugin(this, opts);
+	}
+
+	async installClaudeSkills(dir: string, opts?: { prefix?: string }): Promise<string[]> {
+		const { installClaudeSkills } = await import("./adapters/claude.js");
+		return installClaudeSkills(this, dir, opts);
+	}
+
+	async installVSCodeSkills(dir: string, opts?: { subdir?: string }): Promise<string[]> {
+		const { installVSCodeSkills } = await import("./adapters/vscode.js");
+		return installVSCodeSkills(this, dir, opts);
 	}
 }

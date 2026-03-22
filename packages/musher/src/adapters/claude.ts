@@ -3,9 +3,11 @@
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type { Bundle } from "../bundle.js";
 import type { Selection } from "../selection.js";
+
+const SKILL_PREFIX_RE = /^skills\/[^/]+\//;
 
 /**
  * Export a Claude Code plugin directory structure from a Bundle or Selection.
@@ -23,7 +25,7 @@ export async function exportClaudePlugin(
 ): Promise<string> {
 	const bundle = "bundle" in source ? source.bundle : (source as Bundle);
 	const name = opts.name ?? bundle.ref.slug;
-	const pluginDir = join(opts.targetDir, name);
+	const pluginDir = resolve(opts.targetDir, name);
 
 	await mkdir(pluginDir, { recursive: true });
 
@@ -58,7 +60,7 @@ export async function installClaudeSkills(
 	opts?: { prefix?: string },
 ): Promise<string[]> {
 	const source = "bundle" in bundle ? bundle.bundle : (bundle as Bundle);
-	const skillsDir = join(dir, ".claude", "skills");
+	const skillsDir = resolve(dir, ".claude", "skills");
 	const prefix = opts?.prefix ?? "";
 	const written: string[] = [];
 
@@ -71,7 +73,7 @@ export async function installClaudeSkills(
 
 		for (const fh of skill.files()) {
 			// Strip the skills/{name}/ prefix from the logical path
-			const relativePath = fh.logicalPath.replace(/^skills\/[^/]+\//, "");
+			const relativePath = fh.logicalPath.replace(SKILL_PREFIX_RE, "");
 			const filePath = join(skillDir, relativePath);
 			await mkdir(join(filePath, ".."), { recursive: true });
 			await writeFile(filePath, fh.bytes());

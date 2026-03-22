@@ -8,6 +8,10 @@ Runnable TypeScript examples for `@musher-dev/musher-sdk`.
 - **Musher API key** — set `MUSHER_API_KEY` in your environment (or run `musher login`)
 - From the repo root: `pnpm install && task build`
 
+**OpenAI examples** additionally require:
+- `OPENAI_API_KEY` environment variable
+- `@openai/agents` (and `openai` for the skill-reference example)
+
 ## Running
 
 ```bash
@@ -24,14 +28,16 @@ npx tsx examples/basics/pull-bundle.ts
 | `claude/install-project-skills.ts` | Working | Install skills into `.claude/skills/` |
 | `claude/export-plugin.ts` | Working | Export a Claude Code plugin directory |
 | `openai/local-shell-skill.ts` | Working | Export a skill as local files for OpenAI Agents |
-| `openai/hosted-inline-skill.ts` | Preview | Export a skill as an inline base64 ZIP |
+| `openai/hosted-inline-skill.ts` | Working | Export a skill as an inline base64 ZIP |
+| `openai/local-shell-agent.ts` | Working | Full agent with local shell skill via `@openai/agents` |
+| `openai/container-inline-agent.ts` | Working | Agent with inline skill in `container_auto` |
+| `openai/container-skill-ref.ts` | Working | Upload a skill and use as a `skill_reference` |
 | `ide/install-vscode-skills.ts` | Working | Install skills into a VS Code skill tree |
-
-**Preview** examples work against the current SDK but the adapter output shape may not yet match the latest platform expectations. See the banner comment in each preview file for details.
 
 ## Runtime packages for integration examples
 
 | Platform | Package |
 |----------|---------|
 | Claude | `@anthropic-ai/claude-agent-sdk` |
-| OpenAI | `@openai/agents` |
+| OpenAI (agents) | `@openai/agents` |
+| OpenAI (API client) | `openai` |

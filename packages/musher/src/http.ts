@@ -3,6 +3,8 @@
  */
 
 import type { z } from "zod";
+
+const TRAILING_SLASH_RE = /\/$/;
 import type { ResolvedConfig } from "./config.js";
 import {
 	ApiError,
@@ -26,7 +28,7 @@ export class HttpTransport {
 		schema: z.ZodType<T>,
 		options?: {
 			body?: unknown;
-			params?: Record<string, string | number | boolean | undefined>;
+			params?: Record<string, string | number | boolean | undefined> | undefined;
 		},
 	): Promise<T> {
 		const url = this.buildUrl(path, options?.params);
@@ -36,11 +38,11 @@ export class HttpTransport {
 
 		for (let attempt = 0; attempt <= this.config.retries; attempt++) {
 			try {
-				const response = await this.fetchWithTimeout(url, {
-					method,
-					headers,
-					body: options?.body ? JSON.stringify(options.body) : undefined,
-				});
+				const init: RequestInit = { method, headers };
+				if (options?.body) {
+					init.body = JSON.stringify(options.body);
+				}
+				const response = await this.fetchWithTimeout(url, init);
 
 				if (!response.ok) {
 					const error = await this.mapError(response);
@@ -58,8 +60,12 @@ export class HttpTransport {
 				const json: unknown = await response.json();
 				return this.parse(schema, json);
 			} catch (error) {
-				if (error instanceof ApiError) throw error;
-				if (error instanceof SchemaError) throw error;
+				if (error instanceof ApiError) {
+					throw error;
+				}
+				if (error instanceof SchemaError) {
+					throw error;
+				}
 
 				lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -76,7 +82,7 @@ export class HttpTransport {
 		path: string,
 		params?: Record<string, string | number | boolean | undefined>,
 	): string {
-		const base = this.config.baseUrl.replace(/\/$/, "");
+		const base = this.config.baseUrl.replace(TRAILING_SLASH_RE, "");
 		const url = new URL(`${base}${path}`);
 
 		if (params) {
@@ -97,7 +103,7 @@ export class HttpTransport {
 		};
 
 		if (this.config.apiKey) {
-			headers.Authorization = `Bearer ${this.config.apiKey}`;
+			headers["Authorization"] = `Bearer ${this.config.apiKey}`;
 		}
 
 		return headers;

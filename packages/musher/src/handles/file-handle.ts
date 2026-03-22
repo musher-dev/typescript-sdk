@@ -16,7 +16,7 @@ export class FileHandle {
 		sha256: string,
 		sizeBytes: number,
 		content: Buffer,
-		mediaType?: string,
+		mediaType?: string | undefined,
 	) {
 		this.logicalPath = logicalPath;
 		this.assetType = assetType;

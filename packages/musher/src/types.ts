@@ -59,8 +59,6 @@ export type BundleManifestOutput = z.infer<typeof BundleManifestOutputSchema>;
 
 // -- High-level types ---------------------------------------------------------
 
-export type AssetTypeValue = z.infer<typeof import("./schemas/common.js").AssetType>;
-
 /**
  * @deprecated Use `FileHandle` instead.
  */
@@ -69,7 +67,7 @@ export interface LoadedAsset {
 	assetType: string;
 	content: string;
 	sha256: string;
-	mediaType?: string;
+	mediaType?: string | undefined;
 }
 
 /**

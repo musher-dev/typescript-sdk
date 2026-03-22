@@ -5,7 +5,6 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"types": ["node"],
-		"typeRoots": ["../packages/musher/node_modules/@types"],
 		"paths": {
 			"@musher-dev/musher-sdk": ["../packages/musher/src/index.ts"]
 		}

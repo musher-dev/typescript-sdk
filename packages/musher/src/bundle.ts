@@ -202,6 +202,7 @@ export class Bundle {
 	async exportClaudePlugin(opts: {
 		targetDir: string;
 		name?: string;
+		description?: string;
 	}): Promise<string> {
 		const { exportClaudePlugin } = await import("./adapters/claude.js");
 		return exportClaudePlugin(this, opts);
@@ -222,7 +223,9 @@ export class Bundle {
 	/** @deprecated Use `file(path)` instead. */
 	getAsset(path: string): LoadedAsset | undefined {
 		const fh = this._files.get(path);
-		if (!fh) return undefined;
+		if (!fh) {
+			return undefined;
+		}
 		return {
 			logicalPath: fh.logicalPath,
 			assetType: fh.assetType,
@@ -248,10 +251,14 @@ export class Bundle {
 
 /** Extract skill name from logical path: "skills/foo/SKILL.md" → "foo" */
 function extractSkillName(logicalPath: string): string | undefined {
-	if (!logicalPath.startsWith("skills/")) return undefined;
+	if (!logicalPath.startsWith("skills/")) {
+		return undefined;
+	}
 	const rest = logicalPath.slice("skills/".length);
 	const slashIdx = rest.indexOf("/");
-	if (slashIdx === -1) return undefined;
+	if (slashIdx === -1) {
+		return undefined;
+	}
 	const name = rest.slice(0, slashIdx);
 	return name || undefined;
 }

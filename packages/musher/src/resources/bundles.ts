@@ -55,16 +55,19 @@ export class BundlesResource {
 		digest?: string,
 	): Promise<BundleResolveOutput> {
 		const params: Record<string, string> = {};
-		if (version) params.version = version;
-		if (digest) params.digest = digest;
+		if (version) {
+			params["version"] = version;
+		}
+		if (digest) {
+			params["digest"] = digest;
+		}
 
+		const hasParams = Object.keys(params).length > 0;
 		return this.http.request(
 			"GET",
 			`/v1/namespaces/${enc(namespace)}/bundles/${enc(bundle)}:resolve`,
 			BundleResolveOutputSchema,
-			{
-				params: Object.keys(params).length > 0 ? params : undefined,
-			},
+			hasParams ? { params } : undefined,
 		);
 	}
 

@@ -19,10 +19,12 @@ import { Bundle } from "./bundle.js";
 import { CacheError, IntegrityError } from "./errors.js";
 import type { BundleResolveOutput, CachedBundle } from "./types.js";
 
+const JSON_EXT_RE = /\.json$/;
+
 interface CacheMeta {
 	fetchedAt: string;
 	ttlSeconds: number;
-	ociDigest?: string;
+	ociDigest?: string | undefined;
 }
 
 interface RefEntry {
@@ -60,7 +62,9 @@ export class BundleCache {
 		const target = this.blobPath(digest);
 
 		// Dedup: skip if blob already exists
-		if (existsSync(target)) return digest;
+		if (existsSync(target)) {
+			return digest;
+		}
 
 		await this.atomicWrite(target, content);
 		return digest;
@@ -136,7 +140,9 @@ export class BundleCache {
 	): Promise<BundleResolveOutput | null> {
 		const mPath = this.manifestPath(namespace, slug, version);
 
-		if (!existsSync(mPath)) return null;
+		if (!existsSync(mPath)) {
+			return null;
+		}
 
 		try {
 			const raw = await readFile(mPath, "utf-8");
@@ -208,7 +214,9 @@ export class BundleCache {
 	async load(namespace: string, slug: string, version: string): Promise<Bundle | null> {
 		const mPath = this.manifestPath(namespace, slug, version);
 
-		if (!existsSync(mPath)) return null;
+		if (!existsSync(mPath)) {
+			return null;
+		}
 
 		try {
 			const raw = await readFile(mPath, "utf-8");
@@ -232,7 +240,9 @@ export class BundleCache {
 
 			return new Bundle(manifest, contents);
 		} catch (error) {
-			if (error instanceof IntegrityError) throw error;
+			if (error instanceof IntegrityError) {
+				throw error;
+			}
 			throw new CacheError(
 				`Failed to load cache: ${error instanceof Error ? error.message : String(error)}`,
 				{ cause: error instanceof Error ? error : undefined },
@@ -330,24 +340,34 @@ export class BundleCache {
 	/** Walk manifests, remove expired, collect digests from surviving ones. */
 	private async cleanManifests(referencedDigests: Set<string>): Promise<void> {
 		const manifestsRoot = join(this.cacheDir, "manifests");
-		if (!existsSync(manifestsRoot)) return;
+		if (!existsSync(manifestsRoot)) {
+			return;
+		}
 
 		for (const hostId of await safeReaddir(manifestsRoot)) {
 			const hostDir = join(manifestsRoot, hostId);
-			if (!(await isDir(hostDir))) continue;
+			if (!(await isDir(hostDir))) {
+				continue;
+			}
 
 			for (const ns of await safeReaddir(hostDir)) {
 				const nsDir = join(hostDir, ns);
-				if (!(await isDir(nsDir))) continue;
+				if (!(await isDir(nsDir))) {
+					continue;
+				}
 
 				for (const slug of await safeReaddir(nsDir)) {
 					const slugDir = join(nsDir, slug);
-					if (!(await isDir(slugDir))) continue;
+					if (!(await isDir(slugDir))) {
+						continue;
+					}
 
 					for (const file of await safeReaddir(slugDir)) {
-						if (!file.endsWith(".json") || file.endsWith(".meta.json")) continue;
+						if (!file.endsWith(".json") || file.endsWith(".meta.json")) {
+							continue;
+						}
 
-						const version = file.replace(/\.json$/, "");
+						const version = file.replace(JSON_EXT_RE, "");
 						const fresh = await this.isFresh(ns, slug, version);
 
 						if (fresh) {
@@ -382,23 +402,33 @@ export class BundleCache {
 	/** Walk refs and remove expired entries. */
 	private async cleanRefs(): Promise<void> {
 		const refsRoot = join(this.cacheDir, "refs");
-		if (!existsSync(refsRoot)) return;
+		if (!existsSync(refsRoot)) {
+			return;
+		}
 
 		for (const hostId of await safeReaddir(refsRoot)) {
 			const hostDir = join(refsRoot, hostId);
-			if (!(await isDir(hostDir))) continue;
+			if (!(await isDir(hostDir))) {
+				continue;
+			}
 
 			for (const ns of await safeReaddir(hostDir)) {
 				const nsDir = join(hostDir, ns);
-				if (!(await isDir(nsDir))) continue;
+				if (!(await isDir(nsDir))) {
+					continue;
+				}
 
 				for (const slug of await safeReaddir(nsDir)) {
 					const slugDir = join(nsDir, slug);
-					if (!(await isDir(slugDir))) continue;
+					if (!(await isDir(slugDir))) {
+						continue;
+					}
 
 					for (const file of await safeReaddir(slugDir)) {
-						if (!file.endsWith(".json")) continue;
-						const ref = file.replace(/\.json$/, "");
+						if (!file.endsWith(".json")) {
+							continue;
+						}
+						const ref = file.replace(JSON_EXT_RE, "");
 						const version = await this.resolveRef(ns, slug, ref);
 						if (version === null) {
 							await safeRm(join(slugDir, file));
@@ -412,11 +442,15 @@ export class BundleCache {
 	/** Remove blobs not referenced by any surviving manifest. */
 	private async gcBlobs(referencedDigests: Set<string>): Promise<void> {
 		const blobsRoot = join(this.cacheDir, "blobs", "sha256");
-		if (!existsSync(blobsRoot)) return;
+		if (!existsSync(blobsRoot)) {
+			return;
+		}
 
 		for (const prefix of await safeReaddir(blobsRoot)) {
 			const prefixDir = join(blobsRoot, prefix);
-			if (!(await isDir(prefixDir))) continue;
+			if (!(await isDir(prefixDir))) {
+				continue;
+			}
 
 			for (const digest of await safeReaddir(prefixDir)) {
 				if (!referencedDigests.has(digest)) {

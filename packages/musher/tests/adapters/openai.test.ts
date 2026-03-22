@@ -11,18 +11,48 @@ function sha(text: string): string {
 	return createHash("sha256").update(text).digest("hex");
 }
 
-const SKILL_MD = "# Code Review\nA skill for reviewing code.";
+const SKILL_MD_PLAIN = "# Code Review\nA skill for reviewing code.";
+const ABSOLUTE_PATH_RE = /^\//;
+const REVIEW_PREFIX_RE = /^review\//;
 
-function makeSkill(): SkillHandle {
+const SKILL_MD_FRONTMATTER = [
+	"---",
+	"name: review",
+	"description: Reviews code for quality and style issues",
+	"---",
+	"# Code Review",
+	"Body content.",
+].join("\n");
+
+function makeSkill(skillMd = SKILL_MD_PLAIN): SkillHandle {
 	const defFile = new FileHandle(
 		"skills/review/SKILL.md",
 		"skill",
-		sha(SKILL_MD),
-		SKILL_MD.length,
-		Buffer.from(SKILL_MD),
+		sha(skillMd),
+		skillMd.length,
+		Buffer.from(skillMd),
 		"text/markdown",
 	);
 	return new SkillHandle("review", [defFile]);
+}
+
+/** Extract file names from a STORE-method ZIP buffer. */
+function zipFileNames(buf: Buffer): string[] {
+	const names: string[] = [];
+	let offset = 0;
+	while (offset + 30 <= buf.length) {
+		const sig = buf.readUInt32LE(offset);
+		if (sig !== 0x04034b50) {
+			break;
+		}
+		const nameLen = buf.readUInt16LE(offset + 26);
+		const extraLen = buf.readUInt16LE(offset + 28);
+		const compressedSize = buf.readUInt32LE(offset + 18);
+		const name = buf.subarray(offset + 30, offset + 30 + nameLen).toString("utf-8");
+		names.push(name);
+		offset += 30 + nameLen + extraLen + compressedSize;
+	}
+	return names;
 }
 
 describe("OpenAI adapter", () => {
@@ -46,24 +76,58 @@ describe("OpenAI adapter", () => {
 			expect(result.path).toContain("review");
 
 			const content = await readFile(join(result.path, "SKILL.md"), "utf-8");
-			expect(content).toBe(SKILL_MD);
+			expect(content).toBe(SKILL_MD_PLAIN);
+		});
+
+		it("prefers frontmatter description over raw text", async () => {
+			const skill = makeSkill(SKILL_MD_FRONTMATTER);
+			const result = await exportOpenAILocalSkill(skill, tempDir);
+
+			expect(result.description).toBe("Reviews code for quality and style issues");
+		});
+
+		it("returns an absolute path", async () => {
+			const skill = makeSkill();
+			const result = await exportOpenAILocalSkill(skill, tempDir);
+
+			expect(result.path).toMatch(ABSOLUTE_PATH_RE);
 		});
 	});
 
 	describe("exportOpenAIInlineSkill", () => {
-		it("returns base64 zip content", () => {
+		it("returns the official ShellToolInlineSkill shape", () => {
 			const skill = makeSkill();
 			const result = exportOpenAIInlineSkill(skill);
 
+			expect(result.type).toBe("inline");
 			expect(result.name).toBe("review");
 			expect(result.description).toContain("Code Review");
-			expect(result.content).toBeTruthy();
+			expect(result.source.type).toBe("base64");
+			expect(result.source.mediaType).toBe("application/zip");
+			expect(result.source.data).toBeTruthy();
+		});
 
-			// Verify it's valid base64
-			const buf = Buffer.from(result.content, "base64");
-			// ZIP files start with PK (0x504b)
+		it("produces a valid ZIP with top-level skill folder", () => {
+			const skill = makeSkill();
+			const result = exportOpenAIInlineSkill(skill);
+
+			const buf = Buffer.from(result.source.data, "base64");
+			// ZIP magic bytes
 			expect(buf[0]).toBe(0x50);
 			expect(buf[1]).toBe(0x4b);
+
+			const names = zipFileNames(buf);
+			expect(names.length).toBeGreaterThan(0);
+			for (const name of names) {
+				expect(name).toMatch(REVIEW_PREFIX_RE);
+			}
+		});
+
+		it("prefers frontmatter description over raw text", () => {
+			const skill = makeSkill(SKILL_MD_FRONTMATTER);
+			const result = exportOpenAIInlineSkill(skill);
+
+			expect(result.description).toBe("Reviews code for quality and style issues");
 		});
 	});
 });

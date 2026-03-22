@@ -3,9 +3,11 @@
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { Bundle } from "../bundle.js";
 import type { Selection } from "../selection.js";
+
+const SKILL_PREFIX_RE = /^skills\/[^/]+\//;
 
 /**
  * Install skills from a bundle into an IDE skill tree directory.
@@ -20,7 +22,7 @@ export async function installVSCodeSkills(
 ): Promise<string[]> {
 	const bundle = "bundle" in source ? source.bundle : (source as Bundle);
 	const subdir = opts?.subdir ?? ".agents/skills";
-	const skillsDir = join(dir, subdir);
+	const skillsDir = resolve(dir, subdir);
 	const written: string[] = [];
 
 	const skills =
@@ -31,7 +33,7 @@ export async function installVSCodeSkills(
 		await mkdir(skillDir, { recursive: true });
 
 		for (const fh of skill.files()) {
-			const relativePath = fh.logicalPath.replace(/^skills\/[^/]+\//, "");
+			const relativePath = fh.logicalPath.replace(SKILL_PREFIX_RE, "");
 			const filePath = join(skillDir, relativePath);
 			await mkdir(dirname(filePath), { recursive: true });
 			await writeFile(filePath, fh.bytes());

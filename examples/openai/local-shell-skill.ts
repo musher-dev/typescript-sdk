@@ -6,6 +6,7 @@
  *
  * Prerequisites:
  *   export MUSHER_API_KEY="mush_..."
+ *   export OPENAI_API_KEY="sk-..."   # required if wiring into an agent
  *
  * Run:
  *   npx tsx examples/openai/local-shell-skill.ts

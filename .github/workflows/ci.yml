@@ -23,4 +23,7 @@ jobs:
       - run: pnpm biome ci .
       - run: pnpm -r check:types
       - run: pnpm -r check:test
+      - run: pnpm -r check:exports
       - run: pnpm -r build
+      - run: pnpm -r check:publint
+      - run: pnpm -r check:attw

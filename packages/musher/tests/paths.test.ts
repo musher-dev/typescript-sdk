@@ -55,11 +55,11 @@ describe("resolveMusherDirs", () => {
 
 		it("uses XDG env vars when set", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.XDG_CACHE_HOME = "/custom/cache";
-			process.env.XDG_CONFIG_HOME = "/custom/config";
-			process.env.XDG_DATA_HOME = "/custom/data";
-			process.env.XDG_STATE_HOME = "/custom/state";
-			process.env.XDG_RUNTIME_DIR = "/run/user/1000";
+			process.env["XDG_CACHE_HOME"] = "/custom/cache";
+			process.env["XDG_CONFIG_HOME"] = "/custom/config";
+			process.env["XDG_DATA_HOME"] = "/custom/data";
+			process.env["XDG_STATE_HOME"] = "/custom/state";
+			process.env["XDG_RUNTIME_DIR"] = "/run/user/1000";
 
 			const dirs = resolveMusherDirs();
 			expect(dirs.cache).toBe("/custom/cache/musher");
@@ -71,7 +71,7 @@ describe("resolveMusherDirs", () => {
 
 		it("rejects relative XDG paths and falls back to default", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.XDG_CACHE_HOME = "relative/path";
+			process.env["XDG_CACHE_HOME"] = "relative/path";
 
 			const dirs = resolveMusherDirs();
 			const home = homedir();
@@ -96,7 +96,7 @@ describe("resolveMusherDirs", () => {
 	describe("Windows defaults", () => {
 		it("uses %LOCALAPPDATA% flat layout", () => {
 			Object.defineProperty(process, "platform", { value: "win32" });
-			process.env.LOCALAPPDATA = "/mock/local";
+			process.env["LOCALAPPDATA"] = "/mock/local";
 
 			const dirs = resolveMusherDirs();
 			expect(dirs.cache).toBe(join("/mock/local", "musher", "cache"));
@@ -110,7 +110,7 @@ describe("resolveMusherDirs", () => {
 	describe("MUSHER_* overrides", () => {
 		it("MUSHER_CACHE_HOME takes precedence", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.MUSHER_CACHE_HOME = "/override/cache";
+			process.env["MUSHER_CACHE_HOME"] = "/override/cache";
 
 			const dirs = resolveMusherDirs();
 			expect(dirs.cache).toBe("/override/cache");
@@ -118,7 +118,7 @@ describe("resolveMusherDirs", () => {
 
 		it("MUSHER_HOME provides umbrella override", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.MUSHER_HOME = "/umbrella";
+			process.env["MUSHER_HOME"] = "/umbrella";
 
 			const dirs = resolveMusherDirs();
 			expect(dirs.cache).toBe(join("/umbrella", "cache"));
@@ -130,8 +130,8 @@ describe("resolveMusherDirs", () => {
 
 		it("per-dir override takes precedence over MUSHER_HOME", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.MUSHER_HOME = "/umbrella";
-			process.env.MUSHER_CACHE_HOME = "/specific/cache";
+			process.env["MUSHER_HOME"] = "/umbrella";
+			process.env["MUSHER_CACHE_HOME"] = "/specific/cache";
 
 			const dirs = resolveMusherDirs();
 			expect(dirs.cache).toBe("/specific/cache");
@@ -140,7 +140,7 @@ describe("resolveMusherDirs", () => {
 
 		it("rejects relative MUSHER_CACHE_HOME and falls back", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.MUSHER_CACHE_HOME = "relative/cache";
+			process.env["MUSHER_CACHE_HOME"] = "relative/cache";
 
 			const dirs = resolveMusherDirs();
 			const home = homedir();
@@ -149,7 +149,7 @@ describe("resolveMusherDirs", () => {
 
 		it("rejects relative MUSHER_HOME and falls back", () => {
 			Object.defineProperty(process, "platform", { value: "linux" });
-			process.env.MUSHER_HOME = "relative/home";
+			process.env["MUSHER_HOME"] = "relative/home";
 
 			const dirs = resolveMusherDirs();
 			const home = homedir();

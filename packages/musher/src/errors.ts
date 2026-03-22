@@ -18,8 +18,8 @@ export interface ProblemDetail {
 	title: string;
 	status: number;
 	detail: string;
-	instance?: string;
-	traceId?: string;
+	instance?: string | undefined;
+	traceId?: string | undefined;
 }
 
 export class ApiError extends MushError {
@@ -56,7 +56,7 @@ export class ForbiddenError extends ApiError {
 }
 
 export class ValidationError extends ApiError {
-	readonly errors?: Array<{ loc: string[]; msg: string; type: string }>;
+	readonly errors?: Array<{ loc: string[]; msg: string; type: string }> | undefined;
 
 	constructor(
 		problem: ProblemDetail & { errors?: Array<{ loc: string[]; msg: string; type: string }> },

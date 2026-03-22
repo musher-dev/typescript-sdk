@@ -99,9 +99,9 @@ describe("Bundle", () => {
 		const bundle = new Bundle(makeManifest(), makeContents());
 		const skills = bundle.skills();
 		expect(skills).toHaveLength(1);
-		expect(skills[0]!.name).toBe("review");
-		expect(skills[0]!.files()).toHaveLength(2);
-		expect(skills[0]!.definition()?.text()).toBe(SKILL_CONTENT);
+		expect(skills[0]?.name).toBe("review");
+		expect(skills[0]?.files()).toHaveLength(2);
+		expect(skills[0]?.definition()?.text()).toBe(SKILL_CONTENT);
 	});
 
 	it("skill() accessor", () => {
@@ -142,7 +142,7 @@ describe("Bundle", () => {
 		const result = bundle.verify();
 		expect(result.ok).toBe(false);
 		expect(result.errors).toHaveLength(1);
-		expect(result.errors[0]!.path).toBe("prompts/system.md");
+		expect(result.errors[0]?.path).toBe("prompts/system.md");
 	});
 
 	it("deprecated getAsset() still works", () => {

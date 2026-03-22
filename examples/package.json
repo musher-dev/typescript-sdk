@@ -1,0 +1,15 @@
+{
+	"name": "@musher-dev/examples",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check:types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@musher-dev/musher-sdk": "workspace:*",
+		"@openai/agents": "^0.1.0",
+		"@types/node": "^22.0.0",
+		"openai": "^4.0.0",
+		"typescript": "^5.7.0"
+	}
+}

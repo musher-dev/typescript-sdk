@@ -2,7 +2,10 @@
  * OpenAI adapter — export skills as local files or inline base64 ZIP.
  */
 
+import { extractDescription } from "../frontmatter.js";
 import type { SkillHandle } from "../handles/skill-handle.js";
+
+const SKILL_PREFIX_RE = /^skills\/[^/]+\//;
 
 export interface OpenAILocalSkill {
 	name: string;
@@ -11,9 +14,14 @@ export interface OpenAILocalSkill {
 }
 
 export interface OpenAIInlineSkill {
+	type: "inline";
 	name: string;
 	description: string;
-	content: string;
+	source: {
+		type: "base64";
+		mediaType: "application/zip";
+		data: string;
+	};
 }
 
 /**
@@ -24,49 +32,47 @@ export async function exportOpenAILocalSkill(
 	targetDir: string,
 ): Promise<OpenAILocalSkill> {
 	const { mkdir, writeFile } = await import("node:fs/promises");
-	const { join } = await import("node:path");
+	const { join, resolve, dirname } = await import("node:path");
 
-	const skillDir = join(targetDir, skill.name);
+	const skillDir = resolve(targetDir, skill.name);
 	await mkdir(skillDir, { recursive: true });
 
 	for (const fh of skill.files()) {
-		const relativePath = fh.logicalPath.replace(/^skills\/[^/]+\//, "");
+		const relativePath = fh.logicalPath.replace(SKILL_PREFIX_RE, "");
 		const filePath = join(skillDir, relativePath);
-		const { dirname } = await import("node:path");
 		await mkdir(dirname(filePath), { recursive: true });
 		await writeFile(filePath, fh.bytes());
 	}
 
-	const def = skill.definition();
-	const description = def
-		? def.text().slice(0, 200).replace(/\n/g, " ").trim()
-		: `Skill: ${skill.name}`;
+	const description = extractDescription(skill);
 
 	return { name: skill.name, description, path: skillDir };
 }
 
 /**
- * Export a skill as an inline base64 ZIP (STORE method, no compression).
+ * Export a skill as an inline base64 ZIP matching OpenAI's ShellToolInlineSkill shape.
  */
 export function exportOpenAIInlineSkill(skill: SkillHandle): OpenAIInlineSkill {
-	const def = skill.definition();
-	const description = def
-		? def.text().slice(0, 200).replace(/\n/g, " ").trim()
-		: `Skill: ${skill.name}`;
-
+	const description = extractDescription(skill);
 	const zipBuffer = buildStoreZip(skill);
-	const content = zipBuffer.toString("base64");
+	const data = zipBuffer.toString("base64");
 
-	return { name: skill.name, description, content };
+	return {
+		type: "inline",
+		name: skill.name,
+		description,
+		source: { type: "base64", mediaType: "application/zip", data },
+	};
 }
 
 /**
  * Minimal STORE-method ZIP builder (no compression).
- * Produces a valid ZIP archive for small text files.
+ * Produces a valid ZIP archive with a top-level skill directory.
  */
 function buildStoreZip(skill: SkillHandle): Buffer {
 	const files = skill.files().map((fh) => {
-		const name = fh.logicalPath.replace(/^skills\/[^/]+\//, "");
+		const relativePath = fh.logicalPath.replace(SKILL_PREFIX_RE, "");
+		const name = `${skill.name}/${relativePath}`;
 		return { name, data: Buffer.from(fh.bytes()) };
 	});
 

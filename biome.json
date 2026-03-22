@@ -11,21 +11,51 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
+			"all": true,
 			"correctness": {
+				"noNodejsModules": "off",
+				"noUndeclaredDependencies": "off",
 				"noUnusedImports": "error",
 				"noUnusedVariables": "error"
 			},
 			"style": {
-				"noNonNullAssertion": "warn",
-				"useConst": "error"
+				"noDefaultExport": "off",
+				"noNamespaceImport": "off",
+				"noNonNullAssertion": "error",
+				"noParameterProperties": "off",
+				"useConst": "error",
+				"useDefaultSwitchClause": "off",
+				"useFilenamingConvention": "off",
+				"useForOf": "off",
+				"useNamingConvention": "off"
 			},
 			"suspicious": {
-				"noExplicitAny": "warn"
+				"noExplicitAny": "error",
+				"useAwait": "off"
+			},
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "warn",
+				"useLiteralKeys": "off"
+			},
+			"performance": {
+				"noBarrelFile": "off"
 			}
 		}
 	},
 	"files": {
 		"ignore": ["**/dist/**", "**/node_modules/**", "**/.svelte-kit/**"]
-	}
+	},
+	"overrides": [
+		{
+			"include": ["examples/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noConsole": "off",
+						"noConsoleLog": "off"
+					}
+				}
+			}
+		}
+	]
 }

@@ -53,7 +53,9 @@ export function readApiKeyFile(dataDir?: string, host = "api.musher.dev"): strin
 		const dir = dataDir ?? resolveMusherDirs().data;
 		const filePath = join(dir, "credentials", computeHostId(host), "api-key");
 		const content = readFileSync(filePath, "utf-8").trim();
-		if (!content) return undefined;
+		if (!content) {
+			return undefined;
+		}
 
 		// On Unix, reject files readable by group or others
 		if (process.platform !== "win32") {
