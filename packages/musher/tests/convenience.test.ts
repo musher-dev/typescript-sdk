@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { configure, getClient } from "../src/convenience.js";
 import { MusherClient } from "../src/client.js";
+import { configure, getClient } from "../src/convenience.js";
 
 describe("convenience functions", () => {
 	it("getClient() returns a MusherClient", () => {

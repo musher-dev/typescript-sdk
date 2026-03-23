@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { AgentSpecHandle } from "../src/handles/agent-spec-handle.js";
 import { FileHandle } from "../src/handles/file-handle.js";
 import { PromptHandle } from "../src/handles/prompt-handle.js";
 import { SkillHandle } from "../src/handles/skill-handle.js";
 import { ToolsetHandle } from "../src/handles/toolset-handle.js";
-import { AgentSpecHandle } from "../src/handles/agent-spec-handle.js";
 
 describe("FileHandle", () => {
 	const content = Buffer.from("Hello, World!");

@@ -14,8 +14,8 @@
  *   npx tsx examples/openai/local-shell-agent.ts
  */
 
-import { Agent, run, shellTool } from "@openai/agents";
 import { exportOpenAILocalSkill, pull } from "@musher-dev/musher-sdk";
+import { Agent, run, shellTool } from "@openai/agents";
 
 const bundle = await pull("acme/code-review-kit:1.2.0");
 const skill = bundle.skill("lint-rules");

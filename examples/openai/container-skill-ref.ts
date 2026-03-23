@@ -14,8 +14,8 @@
  *   npx tsx examples/openai/container-skill-ref.ts
  */
 
-import OpenAI from "openai";
 import { exportOpenAIInlineSkill, pull } from "@musher-dev/musher-sdk";
+import OpenAI from "openai";
 
 // The skills API is documented in OpenAI's guides but may require a newer
 // version of the `openai` package than is currently published.
