@@ -14,8 +14,8 @@
  *   npx tsx examples/openai/container-inline-agent.ts
  */
 
-import { Agent, run, shellTool } from "@openai/agents";
 import { exportOpenAIInlineSkill, pull } from "@musher-dev/musher-sdk";
+import { Agent, run, shellTool } from "@openai/agents";
 
 const bundle = await pull("acme/code-review-kit:1.2.0");
 const inline = exportOpenAIInlineSkill(bundle.skill("lint-rules"));

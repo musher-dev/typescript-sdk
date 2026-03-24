@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { BundleCache } from "../src/cache.js";
 import { Bundle } from "../src/bundle.js";
+import { BundleCache } from "../src/cache.js";
 import type { BundleResolveOutput } from "../src/types.js";
 
 const REGISTRY_URL = "https://api.musher.dev";

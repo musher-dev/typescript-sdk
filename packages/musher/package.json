@@ -1,6 +1,6 @@
 {
 	"name": "@musher-dev/musher-sdk",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Official TypeScript SDK for the Musher platform — bundle loader and cache client",
 	"license": "MIT",
 	"type": "module",
