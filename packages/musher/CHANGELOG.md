@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/musher-dev/typescript-sdk/compare/0.1.2...0.1.3) (2026-03-24)
+
+
+### Bug Fixes
+
+* resolve biome formatting errors ([3b02f0b](https://github.com/musher-dev/typescript-sdk/commit/3b02f0b0c002d5942c7d2d883136268a70eb106c))
+* resolve biome formatting errors in package.json and manifest.json ([f35278f](https://github.com/musher-dev/typescript-sdk/commit/f35278ff51d071a5e83eb39ae60753bfd7fd9619))
+
 ## [0.1.2](https://github.com/musher-dev/typescript-sdk/compare/0.1.1...0.1.2) (2026-03-24)
 
 
