@@ -1,6 +1,6 @@
 {
 	"name": "@musher-dev/musher-sdk",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Official TypeScript SDK for the Musher platform — bundle loader and cache client",
 	"license": "MIT",
 	"type": "module",
@@ -19,7 +19,9 @@
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "tsup",
 		"check": "pnpm check:format && pnpm check:lint && pnpm check:types && pnpm check:test",
@@ -53,5 +55,11 @@
 		"url": "git+https://github.com/musher-dev/typescript-sdk.git",
 		"directory": "packages/musher"
 	},
-	"keywords": ["musher", "bundle", "sdk", "ai", "agent"]
+	"keywords": [
+		"musher",
+		"bundle",
+		"sdk",
+		"ai",
+		"agent"
+	]
 }
