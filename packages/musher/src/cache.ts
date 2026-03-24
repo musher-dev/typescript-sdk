@@ -339,49 +339,21 @@ export class BundleCache {
 
 	/** Walk manifests, remove expired, collect digests from surviving ones. */
 	private async cleanManifests(referencedDigests: Set<string>): Promise<void> {
-		const manifestsRoot = join(this.cacheDir, "manifests");
-		if (!existsSync(manifestsRoot)) {
-			return;
-		}
-
-		for (const hostId of await safeReaddir(manifestsRoot)) {
-			const hostDir = join(manifestsRoot, hostId);
-			if (!(await isDir(hostDir))) {
-				continue;
+		await walkCacheTree(join(this.cacheDir, "manifests"), async (ns, slug, slugDir, file) => {
+			if (!file.endsWith(".json") || file.endsWith(".meta.json")) {
+				return;
 			}
 
-			for (const ns of await safeReaddir(hostDir)) {
-				const nsDir = join(hostDir, ns);
-				if (!(await isDir(nsDir))) {
-					continue;
-				}
+			const version = file.replace(JSON_EXT_RE, "");
+			const fresh = await this.isFresh(ns, slug, version);
 
-				for (const slug of await safeReaddir(nsDir)) {
-					const slugDir = join(nsDir, slug);
-					if (!(await isDir(slugDir))) {
-						continue;
-					}
-
-					for (const file of await safeReaddir(slugDir)) {
-						if (!file.endsWith(".json") || file.endsWith(".meta.json")) {
-							continue;
-						}
-
-						const version = file.replace(JSON_EXT_RE, "");
-						const fresh = await this.isFresh(ns, slug, version);
-
-						if (fresh) {
-							// Collect blob digests from surviving manifest
-							await this.collectDigests(join(slugDir, file), referencedDigests);
-						} else {
-							// Remove expired manifest + meta
-							await safeRm(join(slugDir, file));
-							await safeRm(join(slugDir, `${version}.meta.json`));
-						}
-					}
-				}
+			if (fresh) {
+				await this.collectDigests(join(slugDir, file), referencedDigests);
+			} else {
+				await safeRm(join(slugDir, file));
+				await safeRm(join(slugDir, `${version}.meta.json`));
 			}
-		}
+		});
 	}
 
 	/** Collect blob digests referenced by a manifest file. */
@@ -401,42 +373,16 @@ export class BundleCache {
 
 	/** Walk refs and remove expired entries. */
 	private async cleanRefs(): Promise<void> {
-		const refsRoot = join(this.cacheDir, "refs");
-		if (!existsSync(refsRoot)) {
-			return;
-		}
-
-		for (const hostId of await safeReaddir(refsRoot)) {
-			const hostDir = join(refsRoot, hostId);
-			if (!(await isDir(hostDir))) {
-				continue;
+		await walkCacheTree(join(this.cacheDir, "refs"), async (ns, slug, slugDir, file) => {
+			if (!file.endsWith(".json")) {
+				return;
 			}
-
-			for (const ns of await safeReaddir(hostDir)) {
-				const nsDir = join(hostDir, ns);
-				if (!(await isDir(nsDir))) {
-					continue;
-				}
-
-				for (const slug of await safeReaddir(nsDir)) {
-					const slugDir = join(nsDir, slug);
-					if (!(await isDir(slugDir))) {
-						continue;
-					}
-
-					for (const file of await safeReaddir(slugDir)) {
-						if (!file.endsWith(".json")) {
-							continue;
-						}
-						const ref = file.replace(JSON_EXT_RE, "");
-						const version = await this.resolveRef(ns, slug, ref);
-						if (version === null) {
-							await safeRm(join(slugDir, file));
-						}
-					}
-				}
+			const ref = file.replace(JSON_EXT_RE, "");
+			const version = await this.resolveRef(ns, slug, ref);
+			if (version === null) {
+				await safeRm(join(slugDir, file));
 			}
-		}
+		});
 	}
 
 	/** Remove blobs not referenced by any surviving manifest. */
@@ -477,6 +423,38 @@ function computeHostId(registryUrl: string): string {
 		return url.host.replace(/[:/]/g, "_");
 	} catch {
 		return registryUrl.replace(/[:/]/g, "_");
+	}
+}
+
+/** List subdirectories of a directory. */
+async function listSubdirs(parent: string): Promise<Array<{ name: string; path: string }>> {
+	const result: Array<{ name: string; path: string }> = [];
+	for (const name of await safeReaddir(parent)) {
+		const p = join(parent, name);
+		if (await isDir(p)) {
+			result.push({ name, path: p });
+		}
+	}
+	return result;
+}
+
+/** Walk a host/ns/slug cache directory tree, calling visitor for each file in slug dirs. */
+async function walkCacheTree(
+	root: string,
+	visitor: (ns: string, slug: string, slugDir: string, file: string) => Promise<void>,
+): Promise<void> {
+	if (!existsSync(root)) {
+		return;
+	}
+
+	for (const host of await listSubdirs(root)) {
+		for (const ns of await listSubdirs(host.path)) {
+			for (const slug of await listSubdirs(ns.path)) {
+				for (const file of await safeReaddir(slug.path)) {
+					await visitor(ns.name, slug.name, slug.path, file);
+				}
+			}
+		}
 	}
 }
 
