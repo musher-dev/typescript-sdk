@@ -37,49 +37,10 @@ export class Selection {
 			}
 		};
 
-		if (this._filter.skills) {
-			for (const name of this._filter.skills) {
-				const skill = this._bundle.skills().find((s) => s.name === name);
-				if (skill) {
-					for (const f of skill.files()) {
-						addFile(f);
-					}
-				}
-			}
-		}
-
-		if (this._filter.prompts) {
-			for (const name of this._filter.prompts) {
-				const prompt = this._bundle.prompts().find((p) => p.name === name);
-				if (prompt) {
-					for (const f of prompt.files()) {
-						addFile(f);
-					}
-				}
-			}
-		}
-
-		if (this._filter.toolsets) {
-			for (const name of this._filter.toolsets) {
-				const toolset = this._bundle.toolsets().find((t) => t.name === name);
-				if (toolset) {
-					for (const f of toolset.files()) {
-						addFile(f);
-					}
-				}
-			}
-		}
-
-		if (this._filter.agentSpecs) {
-			for (const name of this._filter.agentSpecs) {
-				const spec = this._bundle.agentSpecs().find((a) => a.name === name);
-				if (spec) {
-					for (const f of spec.files()) {
-						addFile(f);
-					}
-				}
-			}
-		}
+		this.collectFromCategory(this._bundle.skills(), this._filter.skills, addFile);
+		this.collectFromCategory(this._bundle.prompts(), this._filter.prompts, addFile);
+		this.collectFromCategory(this._bundle.toolsets(), this._filter.toolsets, addFile);
+		this.collectFromCategory(this._bundle.agentSpecs(), this._filter.agentSpecs, addFile);
 
 		if (this._filter.paths) {
 			for (const path of this._filter.paths) {
@@ -91,6 +52,24 @@ export class Selection {
 		}
 
 		return result;
+	}
+
+	private collectFromCategory<T extends { name: string; files(): FileHandle[] }>(
+		items: T[],
+		names: string[] | undefined,
+		addFile: (fh: FileHandle) => void,
+	): void {
+		if (!names) {
+			return;
+		}
+		for (const name of names) {
+			const item = items.find((i) => i.name === name);
+			if (item) {
+				for (const f of item.files()) {
+					addFile(f);
+				}
+			}
+		}
 	}
 
 	skills(): SkillHandle[] {

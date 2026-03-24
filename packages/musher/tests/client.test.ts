@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { MusherClient } from "../src/client.js";
 import { MushError } from "../src/errors.js";
 
+const INVALID_BUNDLE_REF_RE = /Invalid bundle ref/;
+
 describe("MusherClient", () => {
 	it("creates with default config", () => {
 		const client = new MusherClient();
@@ -42,6 +44,6 @@ describe("MusherClient", () => {
 	it("accepts versioned refs in pull()", async () => {
 		const client = new MusherClient();
 		// Will fail due to network, but should not throw a ref parse error
-		await expect(client.pull("acme/bundle:1.0.0")).rejects.not.toThrow(/Invalid bundle ref/);
+		await expect(client.pull("acme/bundle:1.0.0")).rejects.not.toThrow(INVALID_BUNDLE_REF_RE);
 	});
 });

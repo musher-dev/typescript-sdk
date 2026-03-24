@@ -37,45 +37,56 @@ export class HttpTransport {
 		let lastError: Error | undefined;
 
 		for (let attempt = 0; attempt <= this.config.retries; attempt++) {
-			try {
-				const init: RequestInit = { method, headers };
-				if (options?.body) {
-					init.body = JSON.stringify(options.body);
-				}
-				const response = await this.fetchWithTimeout(url, init);
+			const result = await this.attemptRequest(method, url, headers, schema, options?.body);
 
-				if (!response.ok) {
-					const error = await this.mapError(response);
-					// Only retry on 429 or 5xx
-					if (response.status === 429 || response.status >= 500) {
-						lastError = error;
-						if (attempt < this.config.retries) {
-							await this.backoff(attempt, error);
-							continue;
-						}
-					}
-					throw error;
-				}
-
-				const json: unknown = await response.json();
-				return this.parse(schema, json);
-			} catch (error) {
-				if (error instanceof ApiError) {
-					throw error;
-				}
-				if (error instanceof SchemaError) {
-					throw error;
-				}
-
-				lastError = error instanceof Error ? error : new Error(String(error));
-
-				if (attempt < this.config.retries) {
-					await this.backoff(attempt);
-				}
+			if (result.ok) {
+				return result.value;
 			}
+
+			lastError = result.error;
+
+			if (!result.retryable || attempt >= this.config.retries) {
+				throw lastError;
+			}
+
+			await this.backoff(attempt, lastError);
 		}
 
 		throw lastError ?? new NetworkError("Request failed after retries");
+	}
+
+	private async attemptRequest<T>(
+		method: string,
+		url: string,
+		headers: Record<string, string>,
+		schema: z.ZodType<T>,
+		body?: unknown,
+	): Promise<{ ok: true; value: T } | { ok: false; error: Error; retryable: boolean }> {
+		try {
+			const init: RequestInit = { method, headers };
+			if (body) {
+				init.body = JSON.stringify(body);
+			}
+			const response = await this.fetchWithTimeout(url, init);
+
+			if (!response.ok) {
+				const error = await this.mapError(response);
+				const retryable = response.status === 429 || response.status >= 500;
+				return { ok: false, error, retryable };
+			}
+
+			const json: unknown = await response.json();
+			return { ok: true, value: this.parse(schema, json) };
+		} catch (error) {
+			if (error instanceof ApiError || error instanceof SchemaError) {
+				return { ok: false, error, retryable: false };
+			}
+			return {
+				ok: false,
+				error: error instanceof Error ? error : new Error(String(error)),
+				retryable: true,
+			};
+		}
 	}
 
 	private buildUrl(
