@@ -12,6 +12,8 @@ import type {
 	BundleLayerOutputSchema,
 	BundleManifestOutputSchema,
 	BundleResolveOutputSchema,
+	PullAssetOutputSchema,
+	PullBundleVersionOutputSchema,
 } from "./schemas/resolve.js";
 import type {
 	BundleVersionDetailOutputSchema,
@@ -56,6 +58,8 @@ export type ManifestDetailOutput = z.infer<typeof ManifestDetailOutputSchema>;
 export type BundleResolveOutput = z.infer<typeof BundleResolveOutputSchema>;
 export type BundleLayerOutput = z.infer<typeof BundleLayerOutputSchema>;
 export type BundleManifestOutput = z.infer<typeof BundleManifestOutputSchema>;
+export type PullAssetOutput = z.infer<typeof PullAssetOutputSchema>;
+export type PullBundleVersionOutput = z.infer<typeof PullBundleVersionOutputSchema>;
 
 // -- High-level types ---------------------------------------------------------
 

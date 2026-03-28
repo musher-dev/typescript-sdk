@@ -29,8 +29,8 @@ const client = new OpenAI() as OpenAI & {
 	};
 };
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
-const inline = exportOpenAIInlineSkill(bundle.skill("lint-rules"));
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
+const inline = exportOpenAIInlineSkill(bundle.skill("reviewing-pull-requests"));
 
 // Upload the skill to OpenAI for reuse across agents
 const uploaded = await client.skills.create({
