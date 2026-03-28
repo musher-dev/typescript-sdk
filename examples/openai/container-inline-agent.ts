@@ -17,8 +17,8 @@
 import { exportOpenAIInlineSkill, pull } from "@musher-dev/musher-sdk";
 import { Agent, run, shellTool } from "@openai/agents";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
-const inline = exportOpenAIInlineSkill(bundle.skill("lint-rules"));
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
+const inline = exportOpenAIInlineSkill(bundle.skill("reviewing-pull-requests"));
 
 console.log(`Exported inline skill "${inline.name}" (${inline.source.data.length} base64 chars)`);
 

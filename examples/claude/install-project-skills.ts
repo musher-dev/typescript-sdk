@@ -20,7 +20,7 @@
 
 import { installClaudeSkills, pull } from "@musher-dev/musher-sdk";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
 
 // Pass the project root — skills are written to <root>/.claude/skills/<skill-name>/
 const paths = await installClaudeSkills(bundle, process.cwd());

@@ -10,7 +10,7 @@
 
 import { pull } from "@musher-dev/musher-sdk";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
 
 // List every file in the bundle
 for (const file of bundle.files()) {
@@ -18,16 +18,16 @@ for (const file of bundle.files()) {
 }
 
 // Read a prompt by name
-const systemPrompt = bundle.prompt("system");
-console.log("\n--- system prompt ---");
-console.log(systemPrompt.content());
+const reviewChecklist = bundle.prompt("review-checklist");
+console.log("\n--- review checklist ---");
+console.log(reviewChecklist.content());
 
 // Access a skill
-const skill = bundle.skill("lint-rules");
+const skill = bundle.skill("reviewing-pull-requests");
 console.log(`\nSkill "${skill.name}" has ${skill.files().length} file(s)`);
 
 // Raw file access by path
-const raw = bundle.file("prompts/system.md");
+const raw = bundle.file("prompts/severity-guidelines.md");
 if (raw) {
 	console.log(`\nRaw file text length: ${raw.text().length}`);
 }
