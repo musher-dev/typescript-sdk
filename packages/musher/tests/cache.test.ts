@@ -306,6 +306,223 @@ describe("BundleCache", () => {
 		});
 	});
 
+	describe("list", () => {
+		it("returns empty array for empty cache", async () => {
+			const entries = await cache.list();
+			expect(entries).toEqual([]);
+		});
+
+		it("lists cached entries with metadata", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+
+			const entries = await cache.list();
+			expect(entries).toHaveLength(1);
+			expect(entries[0]).toMatchObject({
+				namespace: "acme",
+				slug: "test-bundle",
+				version: "1.0.0",
+				fresh: true,
+				sizeBytes: 13,
+				ociDigest: "sha256:abc123",
+				ttlSeconds: 86400,
+			});
+			expect(entries[0]?.fetchedAt).toBeDefined();
+		});
+
+		it("lists multiple versions", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+
+			const manifest2: BundleResolveOutput = {
+				...FIXTURE_MANIFEST,
+				version: "2.0.0",
+			};
+			await cache.write(manifest2, assets);
+
+			const entries = await cache.list();
+			expect(entries).toHaveLength(2);
+			const versions = entries.map((e) => e.version).sort();
+			expect(versions).toEqual(["1.0.0", "2.0.0"]);
+		});
+
+		it("only lists entries for the current host", async () => {
+			const cache2 = new BundleCache(tempDir, "https://staging.musher.dev", 86400, 300);
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache2.write(FIXTURE_MANIFEST, assets);
+
+			const prodEntries = await cache.list();
+			expect(prodEntries).toHaveLength(1);
+
+			const stagingEntries = await cache2.list();
+			expect(stagingEntries).toHaveLength(1);
+		});
+	});
+
+	describe("has", () => {
+		it("returns false for missing bundle", async () => {
+			const result = await cache.has("acme", "nonexistent");
+			expect(result).toEqual({ cached: false, fresh: false });
+		});
+
+		it("returns cached + fresh for a fresh entry", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+
+			const result = await cache.has("acme", "test-bundle", "1.0.0");
+			expect(result).toEqual({ cached: true, fresh: true });
+		});
+
+		it("returns cached + stale for an expired entry", async () => {
+			const expiring = new BundleCache(tempDir, REGISTRY_URL, 0, 0);
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await expiring.write(FIXTURE_MANIFEST, assets);
+
+			const result = await expiring.has("acme", "test-bundle", "1.0.0");
+			expect(result).toEqual({ cached: true, fresh: false });
+		});
+
+		it("checks any version when version is omitted", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+
+			const result = await cache.has("acme", "test-bundle");
+			expect(result).toEqual({ cached: true, fresh: true });
+		});
+	});
+
+	describe("remove", () => {
+		it("removes a specific version", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+
+			const removed = await cache.remove("acme", "test-bundle", "1.0.0");
+			expect(removed).toBe(1);
+
+			const loaded = await cache.load("acme", "test-bundle", "1.0.0");
+			expect(loaded).toBeNull();
+		});
+
+		it("removes all versions when version is omitted", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache.write({ ...FIXTURE_MANIFEST, version: "2.0.0" }, assets);
+
+			const removed = await cache.remove("acme", "test-bundle");
+			expect(removed).toBe(2);
+
+			expect(await cache.load("acme", "test-bundle", "1.0.0")).toBeNull();
+			expect(await cache.load("acme", "test-bundle", "2.0.0")).toBeNull();
+		});
+
+		it("removes refs when removing all versions", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache.cacheRef("acme", "test-bundle", "latest", "1.0.0");
+
+			await cache.remove("acme", "test-bundle");
+
+			const version = await cache.resolveRef("acme", "test-bundle", "latest");
+			expect(version).toBeNull();
+		});
+
+		it("returns 0 for nonexistent bundle", async () => {
+			const removed = await cache.remove("acme", "nonexistent", "1.0.0");
+			expect(removed).toBe(0);
+		});
+	});
+
+	describe("stats", () => {
+		it("returns zeros for empty cache", async () => {
+			const s = await cache.stats();
+			expect(s.entryCount).toBe(0);
+			expect(s.freshCount).toBe(0);
+			expect(s.staleCount).toBe(0);
+			expect(s.blobCount).toBe(0);
+			expect(s.blobSizeBytes).toBe(0);
+			expect(s.refCount).toBe(0);
+		});
+
+		it("counts entries, blobs, and refs", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache.cacheRef("acme", "test-bundle", "latest", "1.0.0");
+
+			const s = await cache.stats();
+			expect(s.entryCount).toBe(1);
+			expect(s.freshCount).toBe(1);
+			expect(s.staleCount).toBe(0);
+			expect(s.blobCount).toBe(1);
+			expect(s.blobSizeBytes).toBe(13);
+			expect(s.refCount).toBe(1);
+		});
+
+		it("counts across all hosts", async () => {
+			const cache2 = new BundleCache(tempDir, "https://staging.musher.dev", 86400, 300);
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache2.write(FIXTURE_MANIFEST, assets);
+
+			// Stats from either cache should see both hosts' manifests
+			const s = await cache.stats();
+			expect(s.entryCount).toBe(2);
+			// Blobs are deduplicated
+			expect(s.blobCount).toBe(1);
+		});
+	});
+
+	describe("invalidate", () => {
+		it("marks a specific version as stale", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			expect(await cache.isFresh("acme", "test-bundle", "1.0.0")).toBe(true);
+
+			const count = await cache.invalidate("acme", "test-bundle", "1.0.0");
+			expect(count).toBe(1);
+			expect(await cache.isFresh("acme", "test-bundle", "1.0.0")).toBe(false);
+		});
+
+		it("keeps data on disk after invalidation", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+
+			await cache.invalidate("acme", "test-bundle", "1.0.0");
+
+			// Data is still loadable (just stale)
+			const loaded = await cache.load("acme", "test-bundle", "1.0.0");
+			expect(loaded).not.toBeNull();
+			expect(loaded?.file("hello.txt")?.text()).toBe("Hello, World!");
+		});
+
+		it("invalidates all versions when version is omitted", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache.write({ ...FIXTURE_MANIFEST, version: "2.0.0" }, assets);
+
+			const count = await cache.invalidate("acme", "test-bundle");
+			expect(count).toBe(2);
+			expect(await cache.isFresh("acme", "test-bundle", "1.0.0")).toBe(false);
+			expect(await cache.isFresh("acme", "test-bundle", "2.0.0")).toBe(false);
+		});
+
+		it("invalidates refs for the bundle", async () => {
+			const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
+			await cache.write(FIXTURE_MANIFEST, assets);
+			await cache.cacheRef("acme", "test-bundle", "latest", "1.0.0");
+
+			await cache.invalidate("acme", "test-bundle");
+
+			const version = await cache.resolveRef("acme", "test-bundle", "latest");
+			expect(version).toBeNull();
+		});
+
+		it("returns 0 for nonexistent bundle", async () => {
+			const count = await cache.invalidate("acme", "nonexistent");
+			expect(count).toBe(0);
+		});
+	});
+
 	describe("clean with blob GC", () => {
 		it("removes expired manifests and garbage-collects orphaned blobs", async () => {
 			// Create cache with 0-second TTL so entries expire immediately

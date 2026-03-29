@@ -17,7 +17,7 @@ import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "n
 import { dirname, join } from "node:path";
 import { Bundle } from "./bundle.js";
 import { CacheError, IntegrityError } from "./errors.js";
-import type { BundleResolveOutput, CachedBundle } from "./types.js";
+import type { BundleResolveOutput, CacheEntry, CacheStats, CachedBundle } from "./types.js";
 
 const JSON_EXT_RE = /\.json$/;
 
@@ -119,17 +119,29 @@ export class BundleCache {
 
 	// -- Freshness ----------------------------------------------------------------
 
-	/** Check if a cached manifest is still fresh. */
-	async isFresh(namespace: string, slug: string, version: string): Promise<boolean> {
+	/** Read cache metadata for an entry. Returns null if missing or corrupt. */
+	private async readMeta(
+		namespace: string,
+		slug: string,
+		version: string,
+	): Promise<CacheMeta | null> {
 		try {
 			const raw = await readFile(this.metaPath(namespace, slug, version), "utf-8");
-			const meta: CacheMeta = JSON.parse(raw);
-			const fetchedAt = new Date(meta.fetchedAt).getTime();
-			const ttl = (meta.ttlSeconds ?? this.manifestTtlSeconds) * 1000;
-			return Date.now() - fetchedAt < ttl;
+			return JSON.parse(raw) as CacheMeta;
 		} catch {
+			return null;
+		}
+	}
+
+	/** Check if a cached manifest is still fresh. */
+	async isFresh(namespace: string, slug: string, version: string): Promise<boolean> {
+		const meta = await this.readMeta(namespace, slug, version);
+		if (!meta) {
 			return false;
 		}
+		const fetchedAt = new Date(meta.fetchedAt).getTime();
+		const ttl = (meta.ttlSeconds ?? this.manifestTtlSeconds) * 1000;
+		return Date.now() - fetchedAt < ttl;
 	}
 
 	/** Load only the manifest JSON (no blob content). Returns null if not cached. */
@@ -248,6 +260,257 @@ export class BundleCache {
 				{ cause: error instanceof Error ? error : undefined },
 			);
 		}
+	}
+
+	// -- Inspection & management --------------------------------------------------
+
+	/** Build a CacheEntry from a manifest file and its metadata. */
+	private async buildCacheEntry(
+		namespace: string,
+		slug: string,
+		version: string,
+	): Promise<CacheEntry | null> {
+		const meta = await this.readMeta(namespace, slug, version);
+		if (!meta) {
+			return null;
+		}
+
+		const manifest = await this.loadManifest(namespace, slug, version);
+		const sizeBytes = manifest?.manifest?.layers?.reduce((sum, l) => sum + l.sizeBytes, 0) ?? 0;
+
+		const fetchedAt = new Date(meta.fetchedAt).getTime();
+		const ttl = (meta.ttlSeconds ?? this.manifestTtlSeconds) * 1000;
+
+		return {
+			namespace,
+			slug,
+			version,
+			fetchedAt: meta.fetchedAt,
+			ttlSeconds: meta.ttlSeconds,
+			fresh: Date.now() - fetchedAt < ttl,
+			ociDigest: meta.ociDigest,
+			sizeBytes,
+		};
+	}
+
+	/** Collect cache entries from a single slug directory. */
+	private async collectSlugEntries(
+		namespace: string,
+		slug: string,
+		slugDir: string,
+		entries: CacheEntry[],
+	): Promise<void> {
+		for (const file of await safeReaddir(slugDir)) {
+			if (!isManifestFile(file)) {
+				continue;
+			}
+			const version = file.replace(JSON_EXT_RE, "");
+			const entry = await this.buildCacheEntry(namespace, slug, version);
+			if (entry) {
+				entries.push(entry);
+			}
+		}
+	}
+
+	/** List all cached bundle entries for this registry host. */
+	async list(): Promise<CacheEntry[]> {
+		try {
+			const entries: CacheEntry[] = [];
+			const hostManifests = join(this.cacheDir, "manifests", this.hostId);
+
+			if (!existsSync(hostManifests)) {
+				return entries;
+			}
+
+			for (const ns of await listSubdirs(hostManifests)) {
+				for (const slug of await listSubdirs(ns.path)) {
+					await this.collectSlugEntries(ns.name, slug.name, slug.path, entries);
+				}
+			}
+
+			return entries;
+		} catch (error) {
+			throw new CacheError(
+				`Failed to list cache: ${error instanceof Error ? error.message : String(error)}`,
+				{ cause: error instanceof Error ? error : undefined },
+			);
+		}
+	}
+
+	/** Check if a bundle is cached and whether it is fresh. */
+	async has(
+		namespace: string,
+		slug: string,
+		version?: string,
+	): Promise<{ cached: boolean; fresh: boolean }> {
+		try {
+			if (version) {
+				const mPath = this.manifestPath(namespace, slug, version);
+				if (!existsSync(mPath)) {
+					return { cached: false, fresh: false };
+				}
+				const fresh = await this.isFresh(namespace, slug, version);
+				return { cached: true, fresh };
+			}
+
+			const versions = await this.listVersionFiles(namespace, slug);
+
+			if (versions.length === 0) {
+				return { cached: false, fresh: false };
+			}
+
+			for (const v of versions) {
+				if (await this.isFresh(namespace, slug, v)) {
+					return { cached: true, fresh: true };
+				}
+			}
+			return { cached: true, fresh: false };
+		} catch {
+			return { cached: false, fresh: false };
+		}
+	}
+
+	/** Remove cached data for a specific bundle. Returns count of manifests removed. */
+	async remove(namespace: string, slug: string, version?: string): Promise<number> {
+		try {
+			if (version) {
+				return await this.removeVersion(namespace, slug, version);
+			}
+			return await this.removeAllVersions(namespace, slug);
+		} catch (error) {
+			throw new CacheError(
+				`Failed to remove cache entry: ${error instanceof Error ? error.message : String(error)}`,
+				{ cause: error instanceof Error ? error : undefined },
+			);
+		}
+	}
+
+	private async removeVersion(namespace: string, slug: string, version: string): Promise<number> {
+		const mPath = this.manifestPath(namespace, slug, version);
+		if (!existsSync(mPath)) {
+			return 0;
+		}
+		await safeRm(mPath);
+		await safeRm(this.metaPath(namespace, slug, version));
+		return 1;
+	}
+
+	private async removeAllVersions(namespace: string, slug: string): Promise<number> {
+		let removed = 0;
+		const dir = this.manifestDir(namespace, slug);
+		for (const f of await safeReaddir(dir)) {
+			if (isManifestFile(f)) {
+				const v = f.replace(JSON_EXT_RE, "");
+				await safeRm(join(dir, f));
+				await safeRm(join(dir, `${v}.meta.json`));
+				removed++;
+			}
+		}
+		// Also remove corresponding refs
+		const refDir = join(this.cacheDir, "refs", this.hostId, namespace, slug);
+		if (existsSync(refDir)) {
+			await rm(refDir, { recursive: true, force: true });
+		}
+		return removed;
+	}
+
+	/** Get aggregate cache statistics (across all hosts). */
+	async stats(): Promise<CacheStats> {
+		try {
+			let entryCount = 0;
+			let freshCount = 0;
+			let staleCount = 0;
+			let refCount = 0;
+
+			await walkCacheTree(join(this.cacheDir, "manifests"), async (ns, slug, _slugDir, file) => {
+				if (!isManifestFile(file)) {
+					return;
+				}
+				entryCount++;
+				const version = file.replace(JSON_EXT_RE, "");
+				if (await this.isFresh(ns, slug, version)) {
+					freshCount++;
+				} else {
+					staleCount++;
+				}
+			});
+
+			const { blobCount, blobSizeBytes } = await computeBlobStats(this.cacheDir);
+
+			await walkCacheTree(join(this.cacheDir, "refs"), async (_ns, _slug, _slugDir, file) => {
+				if (file.endsWith(".json")) {
+					refCount++;
+				}
+			});
+
+			return { entryCount, freshCount, staleCount, blobSizeBytes, blobCount, refCount };
+		} catch (error) {
+			throw new CacheError(
+				`Failed to compute cache stats: ${error instanceof Error ? error.message : String(error)}`,
+				{ cause: error instanceof Error ? error : undefined },
+			);
+		}
+	}
+
+	/** Mark entries as stale so the next access re-fetches. Returns count invalidated. */
+	async invalidate(namespace: string, slug: string, version?: string): Promise<number> {
+		try {
+			const versions = version ? [version] : await this.listVersionFiles(namespace, slug);
+
+			let count = 0;
+			for (const v of versions) {
+				if (await this.invalidateVersion(namespace, slug, v)) {
+					count++;
+				}
+			}
+
+			await this.invalidateRefs(namespace, slug);
+			return count;
+		} catch (error) {
+			throw new CacheError(
+				`Failed to invalidate cache: ${error instanceof Error ? error.message : String(error)}`,
+				{ cause: error instanceof Error ? error : undefined },
+			);
+		}
+	}
+
+	private async invalidateVersion(
+		namespace: string,
+		slug: string,
+		version: string,
+	): Promise<boolean> {
+		const meta = await this.readMeta(namespace, slug, version);
+		if (!meta) {
+			return false;
+		}
+		const updated: CacheMeta = { ...meta, fetchedAt: "1970-01-01T00:00:00.000Z" };
+		const metPath = this.metaPath(namespace, slug, version);
+		await this.atomicWrite(metPath, Buffer.from(JSON.stringify(updated, null, 2)));
+		return true;
+	}
+
+	private async invalidateRefs(namespace: string, slug: string): Promise<void> {
+		const refDir = join(this.cacheDir, "refs", this.hostId, namespace, slug);
+		for (const f of await safeReaddir(refDir)) {
+			if (!f.endsWith(".json")) {
+				continue;
+			}
+			try {
+				const raw = await readFile(join(refDir, f), "utf-8");
+				const entry: RefEntry = JSON.parse(raw);
+				entry.fetchedAt = "1970-01-01T00:00:00.000Z";
+				await this.atomicWrite(join(refDir, f), Buffer.from(JSON.stringify(entry, null, 2)));
+			} catch {
+				/* skip corrupt */
+			}
+		}
+	}
+
+	/** List version strings from manifest files in a slug directory. */
+	private async listVersionFiles(namespace: string, slug: string): Promise<string[]> {
+		const dir = this.manifestDir(namespace, slug);
+		const files = await safeReaddir(dir);
+		return files.filter((f) => isManifestFile(f)).map((f) => f.replace(JSON_EXT_RE, ""));
 	}
 
 	// -- Cleanup ------------------------------------------------------------------
@@ -416,6 +679,38 @@ export class BundleCache {
 }
 
 // -- Helpers ------------------------------------------------------------------
+
+/** Check if a filename is a manifest JSON (not a .meta.json). */
+function isManifestFile(file: string): boolean {
+	return file.endsWith(".json") && !file.endsWith(".meta.json");
+}
+
+/** Compute total blob count and size on disk. */
+async function computeBlobStats(
+	cacheDir: string,
+): Promise<{ blobCount: number; blobSizeBytes: number }> {
+	let blobCount = 0;
+	let blobSizeBytes = 0;
+
+	const blobsRoot = join(cacheDir, "blobs", "sha256");
+	if (!existsSync(blobsRoot)) {
+		return { blobCount, blobSizeBytes };
+	}
+
+	for (const prefix of await safeReaddir(blobsRoot)) {
+		const prefixDir = join(blobsRoot, prefix);
+		if (!(await isDir(prefixDir))) {
+			continue;
+		}
+		for (const digest of await safeReaddir(prefixDir)) {
+			blobCount++;
+			const s = await stat(join(prefixDir, digest));
+			blobSizeBytes += s.size;
+		}
+	}
+
+	return { blobCount, blobSizeBytes };
+}
 
 function computeHostId(registryUrl: string): string {
 	try {

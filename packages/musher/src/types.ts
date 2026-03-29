@@ -103,3 +103,44 @@ export interface SelectionFilter {
 	agentSpecs?: string[];
 	paths?: string[];
 }
+
+// -- Cache management ---------------------------------------------------------
+
+/** A single cached bundle entry with metadata. */
+export interface CacheEntry {
+	namespace: string;
+	slug: string;
+	version: string;
+	fetchedAt: string;
+	ttlSeconds: number;
+	fresh: boolean;
+	ociDigest?: string | undefined;
+	/** Total size of blobs referenced by this manifest, in bytes. */
+	sizeBytes: number;
+}
+
+/** Aggregate cache statistics. */
+export interface CacheStats {
+	entryCount: number;
+	freshCount: number;
+	staleCount: number;
+	/** Total size of all blob files on disk, in bytes. */
+	blobSizeBytes: number;
+	blobCount: number;
+	refCount: number;
+}
+
+/** Shape of the client.cache management interface. */
+export interface CacheManager {
+	list(): Promise<CacheEntry[]>;
+	has(
+		namespace: string,
+		slug: string,
+		version?: string,
+	): Promise<{ cached: boolean; fresh: boolean }>;
+	remove(namespace: string, slug: string, version?: string): Promise<number>;
+	stats(): Promise<CacheStats>;
+	invalidate(namespace: string, slug: string, version?: string): Promise<number>;
+	clean(): Promise<void>;
+	purge(): Promise<void>;
+}
