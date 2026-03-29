@@ -13,7 +13,13 @@ import { ApiError, ForbiddenError, IntegrityError, NotFoundError } from "./error
 import { HttpTransport } from "./http.js";
 import { BundleRef } from "./ref.js";
 import { BundlesResource } from "./resources/bundles.js";
-import type { BundleResolveOutput, PullBundleVersionOutput } from "./types.js";
+import type {
+	BundleResolveOutput,
+	CacheEntry,
+	CacheManager,
+	CacheStats,
+	PullBundleVersionOutput,
+} from "./types.js";
 
 let _loadDeprecationWarned = false;
 
@@ -241,7 +247,23 @@ export class MusherClient {
 	}
 
 	/** Cache management utilities. */
-	readonly cache = {
+	readonly cache: CacheManager = {
+		/** List all cached bundle entries for this registry. */
+		list: (): Promise<CacheEntry[]> => this._cache.list(),
+		/** Check if a bundle is cached (and fresh). */
+		has: (
+			namespace: string,
+			slug: string,
+			version?: string,
+		): Promise<{ cached: boolean; fresh: boolean }> => this._cache.has(namespace, slug, version),
+		/** Remove a specific bundle from the cache. Returns count of entries removed. */
+		remove: (namespace: string, slug: string, version?: string): Promise<number> =>
+			this._cache.remove(namespace, slug, version),
+		/** Get aggregate cache statistics. */
+		stats: (): Promise<CacheStats> => this._cache.stats(),
+		/** Mark entries as stale so the next access re-fetches. Returns count invalidated. */
+		invalidate: (namespace: string, slug: string, version?: string): Promise<number> =>
+			this._cache.invalidate(namespace, slug, version),
 		/** Remove expired cache entries and garbage-collect unreferenced blobs. */
 		clean: (): Promise<void> => this._cache.clean(),
 		/** Remove all cached data. */
