@@ -13,8 +13,8 @@
 
 import { exportOpenAIInlineSkill, pull } from "@musher-dev/musher-sdk";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
-const skill = bundle.skill("lint-rules");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
+const skill = bundle.skill("reviewing-pull-requests");
 
 const inline = exportOpenAIInlineSkill(skill);
 

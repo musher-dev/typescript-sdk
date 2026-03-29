@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/musher-dev/typescript-sdk/compare/0.1.4...0.1.5) (2026-03-28)
+
+
+### Features
+
+* add :pull endpoint support with fallback and update examples ([64d6068](https://github.com/musher-dev/typescript-sdk/commit/64d60684ff3aebb5a6ed3e139218cb06a06375e3))
+* add :pull endpoint support with fallback and update examples ([cf4f2bf](https://github.com/musher-dev/typescript-sdk/commit/cf4f2bf89e277988749ad5740f84f13e1876474d))
+
 ## [0.1.4](https://github.com/musher-dev/typescript-sdk/compare/0.1.3...0.1.4) (2026-03-24)
 
 

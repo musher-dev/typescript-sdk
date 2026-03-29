@@ -72,6 +72,8 @@ export {
 	ManifestAssetOutputSchema,
 	ManifestDetailOutputSchema,
 	PaginationMetaSchema,
+	PullAssetOutputSchema,
+	PullBundleVersionOutputSchema,
 	paginatedSchema,
 } from "./schemas/index.js";
 
@@ -97,6 +99,8 @@ export type {
 	Paginated,
 	PaginateParams,
 	PaginationMeta,
+	PullAssetOutput,
+	PullBundleVersionOutput,
 	SelectionFilter,
 	VerifyResult,
 } from "./types.js";

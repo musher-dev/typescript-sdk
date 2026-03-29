@@ -17,8 +17,8 @@
 import { exportOpenAILocalSkill, pull } from "@musher-dev/musher-sdk";
 import { Agent, run, shellTool } from "@openai/agents";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
-const skill = bundle.skill("lint-rules");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
+const skill = bundle.skill("reviewing-pull-requests");
 const exported = await exportOpenAILocalSkill(skill, "./openai-skills");
 
 console.log(`Exported local skill "${exported.name}" → ${exported.path}`);

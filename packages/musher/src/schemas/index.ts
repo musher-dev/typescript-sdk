@@ -15,6 +15,8 @@ export {
 	BundleLayerOutputSchema,
 	BundleManifestOutputSchema,
 	BundleResolveOutputSchema,
+	PullAssetOutputSchema,
+	PullBundleVersionOutputSchema,
 } from "./resolve.js";
 
 export {

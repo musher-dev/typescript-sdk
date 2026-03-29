@@ -9,11 +9,17 @@ import { createHash } from "node:crypto";
 import { Bundle } from "./bundle.js";
 import { BundleCache } from "./cache.js";
 import { type ClientConfig, resolveConfig } from "./config.js";
-import { IntegrityError } from "./errors.js";
+import { ApiError, ForbiddenError, IntegrityError, NotFoundError } from "./errors.js";
 import { HttpTransport } from "./http.js";
 import { BundleRef } from "./ref.js";
 import { BundlesResource } from "./resources/bundles.js";
-import type { BundleResolveOutput, CacheEntry, CacheManager, CacheStats } from "./types.js";
+import type {
+	BundleResolveOutput,
+	CacheEntry,
+	CacheManager,
+	CacheStats,
+	PullBundleVersionOutput,
+} from "./types.js";
 
 let _loadDeprecationWarned = false;
 
@@ -45,6 +51,8 @@ export class MusherClient {
 	async pull(ref: string, version?: string): Promise<Bundle> {
 		const parsed = BundleRef.parse(ref);
 		const resolvedVersion = version ?? parsed.version;
+
+		// Resolve metadata first (needed for manifest hashes and cache keys)
 		const resolved = await this.bundles.resolve(
 			parsed.namespace,
 			parsed.slug,
@@ -52,25 +60,29 @@ export class MusherClient {
 			parsed.digest,
 		);
 
-		// Download asset contents as Buffers, verifying integrity before caching
-		const assets = new Map<string, Buffer>();
+		// Pull asset content — try :pull endpoint (single request), fall back to
+		// individual asset fetches if the caller lacks namespace access.
+		const pulled = await this.pullContent(parsed.namespace, parsed.slug, resolved);
+
+		// Build asset map, verifying integrity against the resolve manifest
+		const hashByPath = new Map<string, string>();
 		if (resolved.manifest?.layers) {
 			for (const layer of resolved.manifest.layers) {
-				const asset = await this.bundles.getAsset(
-					parsed.namespace,
-					parsed.slug,
-					layer.assetId,
-					resolved.version,
-				);
-				if (asset.contentText != null) {
-					const buf = Buffer.from(asset.contentText, "utf-8");
-					const hash = createHash("sha256").update(buf).digest("hex");
-					if (hash !== layer.contentSha256) {
-						throw new IntegrityError(layer.contentSha256, hash);
-					}
-					assets.set(layer.logicalPath, buf);
+				hashByPath.set(layer.logicalPath, layer.contentSha256);
+			}
+		}
+
+		const assets = new Map<string, Buffer>();
+		for (const asset of pulled.manifest) {
+			const buf = Buffer.from(asset.contentText, "utf-8");
+			const expectedHash = hashByPath.get(asset.logicalPath);
+			if (expectedHash) {
+				const hash = createHash("sha256").update(buf).digest("hex");
+				if (hash !== expectedHash) {
+					throw new IntegrityError(expectedHash, hash);
 				}
 			}
+			assets.set(asset.logicalPath, buf);
 		}
 
 		await this._cache.write(resolved, assets);
@@ -177,6 +189,61 @@ export class MusherClient {
 
 		// Pull (resolve + download + cache)
 		return this.pull(ref, version);
+	}
+
+	/**
+	 * Pull content via the :pull endpoint with automatic fallback.
+	 *
+	 * 1. Try namespace :pull (works when caller owns the namespace)
+	 * 2. Fall back to hub :pull (works for any public bundle)
+	 * 3. Fall back to individual asset fetches via getAsset
+	 */
+	private async pullContent(
+		namespace: string,
+		slug: string,
+		resolved: BundleResolveOutput,
+	): Promise<PullBundleVersionOutput> {
+		// Try namespace :pull first
+		try {
+			return await this.bundles.pullVersion(namespace, slug, resolved.version);
+		} catch (error) {
+			if (!(error instanceof ForbiddenError || error instanceof NotFoundError)) {
+				throw error;
+			}
+		}
+
+		// Fall back to hub :pull (public bundles)
+		try {
+			return await this.bundles.pullHubVersion(namespace, slug, resolved.version);
+		} catch (error) {
+			if (!(error instanceof ApiError)) {
+				throw error;
+			}
+		}
+
+		// Final fallback: individual asset fetches
+		if (resolved.manifest?.layers?.length === 0 || !resolved.manifest?.layers) {
+			return { namespace, slug, version: resolved.version, name: resolved.ref, manifest: [] };
+		}
+
+		const manifest = await Promise.all(
+			resolved.manifest.layers.map(async (layer) => {
+				const asset = await this.bundles.getAsset(
+					namespace,
+					slug,
+					layer.logicalPath,
+					resolved.version,
+				);
+				return {
+					logicalPath: layer.logicalPath,
+					assetType: layer.assetType,
+					contentText: asset.contentText ?? "",
+					mediaType: layer.mediaType ?? null,
+				};
+			}),
+		);
+
+		return { namespace, slug, version: resolved.version, name: resolved.ref, manifest };
 	}
 
 	/** Cache management utilities. */

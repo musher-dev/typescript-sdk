@@ -26,4 +26,25 @@ export const BundleResolveOutputSchema = z.object({
 	ociDigest: z.string().nullable().optional(),
 	state: BundleVersionState,
 	manifest: BundleManifestOutputSchema.nullable().optional(),
+	isSigned: z.boolean().optional(),
+	signerType: z.string().nullable().optional(),
+	signedAt: z.string().datetime().nullable().optional(),
+});
+
+// -- Pull endpoint schemas ----------------------------------------------------
+
+export const PullAssetOutputSchema = z.object({
+	logicalPath: z.string(),
+	assetType: z.string(),
+	contentText: z.string(),
+	mediaType: z.string().nullable().optional(),
+});
+
+export const PullBundleVersionOutputSchema = z.object({
+	namespace: z.string(),
+	slug: z.string(),
+	version: z.string(),
+	name: z.string(),
+	description: z.string().nullable().optional(),
+	manifest: z.array(PullAssetOutputSchema),
 });

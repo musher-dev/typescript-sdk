@@ -14,7 +14,7 @@
 
 import { installVSCodeSkills, pull } from "@musher-dev/musher-sdk";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
 
 // Explicitly pass the subdir for clarity (this is the default)
 const paths = await installVSCodeSkills(bundle, process.cwd(), {

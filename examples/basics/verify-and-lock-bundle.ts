@@ -15,7 +15,7 @@
 import { MusherClient, pull } from "@musher-dev/musher-sdk";
 
 // Pull using the top-level convenience function
-const bundle = await pull("acme/code-review-kit:1.2.0");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
 
 // Verify integrity — all SHA-256 digests must match
 const result = bundle.verify();
@@ -32,5 +32,5 @@ console.log("Wrote musher-lock.json");
 
 // Use MusherClient directly when you need custom configuration
 const client = new MusherClient({ cacheDir: "/tmp/musher-cache" });
-const custom = await client.pull("acme/code-review-kit:1.2.0");
+const custom = await client.pull("musher-examples/code-review-kit:1.2.0");
 console.log(`Pulled ${custom.ref.toString()} with custom cache dir`);

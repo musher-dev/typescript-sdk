@@ -13,7 +13,7 @@
 
 import { resolve } from "@musher-dev/musher-sdk";
 
-const meta = await resolve("acme/code-review-kit:1.2.0");
+const meta = await resolve("musher-examples/code-review-kit:1.2.0");
 
 console.log("ref:    ", meta.ref);
 console.log("version:", meta.version);

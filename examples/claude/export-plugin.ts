@@ -21,7 +21,7 @@
 
 import { exportClaudePlugin, pull } from "@musher-dev/musher-sdk";
 
-const bundle = await pull("acme/code-review-kit:1.2.0");
+const bundle = await pull("musher-examples/code-review-kit:1.2.0");
 
 const pluginDir = await exportClaudePlugin(bundle, {
 	targetDir: "./plugins",
