@@ -7,8 +7,27 @@ on:
     branches: [main]
 
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      devcontainer: ${{ steps.filter.outputs.devcontainer }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            devcontainer:
+              - '.devcontainer/**'
+              - '.github/workflows/validate.yaml'
+
   shellcheck:
     name: ShellCheck
+    needs: detect-changes
+    if: needs.detect-changes.outputs.devcontainer == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +39,8 @@ jobs:
 
   compose:
     name: Compose Config
+    needs: detect-changes
+    if: needs.detect-changes.outputs.devcontainer == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +51,8 @@ jobs:
 
   build:
     name: Devcontainer Build
+    needs: detect-changes
+    if: needs.detect-changes.outputs.devcontainer == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
