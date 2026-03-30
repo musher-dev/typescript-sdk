@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { BundleAssetNotFoundError } from "./errors.js";
 import {
 	AgentSpecHandle,
 	FileHandle,
@@ -17,7 +18,7 @@ import {
 } from "./handles/index.js";
 import { BundleRef } from "./ref.js";
 import { Selection } from "./selection.js";
-import type { BundleResolveOutput, LoadedAsset, SelectionFilter, VerifyResult } from "./types.js";
+import type { BundleResolveOutput, SelectionFilter, VerifyResult } from "./types.js";
 
 export class Bundle {
 	readonly ref: BundleRef;
@@ -119,7 +120,7 @@ export class Bundle {
 	skill(name: string): SkillHandle {
 		const h = this._skills.get(name);
 		if (!h) {
-			throw new Error(`Skill "${name}" not found in bundle`);
+			throw new BundleAssetNotFoundError("Skill", name);
 		}
 		return h;
 	}
@@ -131,7 +132,7 @@ export class Bundle {
 	prompt(name: string): PromptHandle {
 		const h = this._prompts.get(name);
 		if (!h) {
-			throw new Error(`Prompt "${name}" not found in bundle`);
+			throw new BundleAssetNotFoundError("Prompt", name);
 		}
 		return h;
 	}
@@ -143,7 +144,7 @@ export class Bundle {
 	toolset(name: string): ToolsetHandle {
 		const h = this._toolsets.get(name);
 		if (!h) {
-			throw new Error(`Toolset "${name}" not found in bundle`);
+			throw new BundleAssetNotFoundError("Toolset", name);
 		}
 		return h;
 	}
@@ -155,7 +156,7 @@ export class Bundle {
 	agentSpec(name: string): AgentSpecHandle {
 		const h = this._agentSpecs.get(name);
 		if (!h) {
-			throw new Error(`AgentSpec "${name}" not found in bundle`);
+			throw new BundleAssetNotFoundError("AgentSpec", name);
 		}
 		return h;
 	}
@@ -216,36 +217,6 @@ export class Bundle {
 	async installVSCodeSkills(dir: string, opts?: { subdir?: string }): Promise<string[]> {
 		const { installVSCodeSkills } = await import("./adapters/vscode.js");
 		return installVSCodeSkills(this, dir, opts);
-	}
-
-	// -- Deprecated compat --
-
-	/** @deprecated Use `file(path)` instead. */
-	getAsset(path: string): LoadedAsset | undefined {
-		const fh = this._files.get(path);
-		if (!fh) {
-			return undefined;
-		}
-		return {
-			logicalPath: fh.logicalPath,
-			assetType: fh.assetType,
-			content: fh.text(),
-			sha256: fh.sha256,
-			mediaType: fh.mediaType,
-		};
-	}
-
-	/** @deprecated Use `files().filter(...)` instead. */
-	getAssetsByType(type: string): LoadedAsset[] {
-		return [...this._files.values()]
-			.filter((fh) => fh.assetType === type)
-			.map((fh) => ({
-				logicalPath: fh.logicalPath,
-				assetType: fh.assetType,
-				content: fh.text(),
-				sha256: fh.sha256,
-				mediaType: fh.mediaType,
-			}));
 	}
 }
 

@@ -7,7 +7,7 @@
  *   namespace/slug@sha256:digest
  */
 
-import { MushError } from "./errors.js";
+import { MusherError } from "./errors.js";
 
 const REF_PATTERN = /^([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_.-]+)(?::(.+)|@sha256:([a-fA-F0-9]+))?$/;
 
@@ -28,7 +28,7 @@ export class BundleRef {
 	static parse(ref: string): BundleRef {
 		const match = ref.match(REF_PATTERN);
 		if (!match) {
-			throw new MushError(
+			throw new MusherError(
 				`Invalid bundle ref "${ref}": expected "namespace/slug", "namespace/slug:version", or "namespace/slug@sha256:digest"`,
 			);
 		}

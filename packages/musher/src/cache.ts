@@ -13,11 +13,11 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Bundle } from "./bundle.js";
 import { CacheError, IntegrityError } from "./errors.js";
-import type { BundleResolveOutput, CacheEntry, CacheStats, CachedBundle } from "./types.js";
+import type { BundleResolveOutput, CacheEntry, CacheStats } from "./types.js";
 
 const JSON_EXT_RE = /\.json$/;
 
@@ -190,28 +190,17 @@ export class BundleCache {
 	}
 
 	/** Write a resolved bundle and its assets to the cache. */
-	async write(
-		manifest: BundleResolveOutput,
-		assets: Map<string, Buffer | string>,
-	): Promise<CachedBundle> {
+	async write(manifest: BundleResolveOutput, assets: Map<string, Buffer>): Promise<void> {
 		try {
 			await this.ensureCacheDirTag();
 
 			// Write blobs (content-addressable)
 			for (const [, content] of assets) {
-				const buf = typeof content === "string" ? Buffer.from(content, "utf-8") : content;
-				await this.writeBlob(buf);
+				await this.writeBlob(content);
 			}
 
 			// Write manifest + metadata
 			await this.writeManifest(manifest);
-
-			return {
-				ref: manifest.ref,
-				version: manifest.version,
-				cacheDir: this.manifestDir(manifest.namespace, manifest.slug),
-				manifest,
-			};
 		} catch (error) {
 			throw new CacheError(
 				`Failed to write cache: ${error instanceof Error ? error.message : String(error)}`,
@@ -528,9 +517,6 @@ export class BundleCache {
 
 			// Garbage-collect unreferenced blobs
 			await this.gcBlobs(referencedDigests);
-
-			// Remove legacy bundles/ directory if present
-			await this.removeLegacy();
 		} catch (error) {
 			throw new CacheError(
 				`Failed to clean cache: ${error instanceof Error ? error.message : String(error)}`,
@@ -542,7 +528,7 @@ export class BundleCache {
 	/** Remove all cached data. */
 	async purge(): Promise<void> {
 		try {
-			const dirs = ["manifests", "refs", "blobs", "temp", "bundles"];
+			const dirs = ["manifests", "refs", "blobs", "temp"];
 			for (const dir of dirs) {
 				const p = join(this.cacheDir, dir);
 				if (existsSync(p)) {
@@ -666,14 +652,6 @@ export class BundleCache {
 					await safeRm(join(prefixDir, digest));
 				}
 			}
-		}
-	}
-
-	/** Remove legacy bundles/ directory if present. */
-	private async removeLegacy(): Promise<void> {
-		const legacyDir = join(this.cacheDir, "bundles");
-		if (existsSync(legacyDir)) {
-			await rm(legacyDir, { recursive: true, force: true });
 		}
 	}
 }

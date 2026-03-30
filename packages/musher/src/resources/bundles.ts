@@ -19,8 +19,8 @@ import type {
 	BundleResolveOutput,
 	BundleVersionDetailOutput,
 	BundleVersionSummaryOutput,
-	PaginateParams,
 	Paginated,
+	PaginateParams,
 	PullBundleVersionOutput,
 } from "../types.js";
 

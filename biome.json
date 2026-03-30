@@ -1,8 +1,6 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-	"organizeImports": {
-		"enabled": true
-	},
+	"$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
@@ -11,16 +9,23 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"all": true,
+			"recommended": true,
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "warn",
+				"useLiteralKeys": "off"
+			},
 			"correctness": {
 				"noNodejsModules": "off",
 				"noUndeclaredDependencies": "off",
 				"noUnusedImports": "error",
 				"noUnusedVariables": "error"
 			},
+			"performance": {
+				"noBarrelFile": "off",
+				"noNamespaceImport": "off"
+			},
 			"style": {
 				"noDefaultExport": "off",
-				"noNamespaceImport": "off",
 				"noNonNullAssertion": "error",
 				"noParameterProperties": "off",
 				"useConst": "error",
@@ -32,27 +37,19 @@
 			"suspicious": {
 				"noExplicitAny": "error",
 				"useAwait": "off"
-			},
-			"complexity": {
-				"noExcessiveCognitiveComplexity": "warn",
-				"useLiteralKeys": "off"
-			},
-			"performance": {
-				"noBarrelFile": "off"
 			}
 		}
 	},
 	"files": {
-		"ignore": ["**/dist/**", "**/node_modules/**", "**/.svelte-kit/**"]
+		"includes": ["**", "!**/dist", "!**/node_modules", "!**/.svelte-kit"]
 	},
 	"overrides": [
 		{
-			"include": ["examples/**"],
+			"includes": ["**/examples/**"],
 			"linter": {
 				"rules": {
 					"suspicious": {
-						"noConsole": "off",
-						"noConsoleLog": "off"
+						"noConsole": "off"
 					}
 				}
 			}

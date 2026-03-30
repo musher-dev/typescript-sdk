@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MusherClient } from "../src/client.js";
-import { MushError } from "../src/errors.js";
+import { MusherError } from "../src/errors.js";
 
 const INVALID_BUNDLE_REF_RE = /Invalid bundle ref/;
 
@@ -31,14 +31,9 @@ describe("MusherClient", () => {
 
 	it("rejects invalid ref in pull()", async () => {
 		const client = new MusherClient();
-		await expect(client.pull("invalid-ref")).rejects.toThrow(MushError);
-		await expect(client.pull("/missing-namespace")).rejects.toThrow(MushError);
-		await expect(client.pull("")).rejects.toThrow(MushError);
-	});
-
-	it("rejects invalid ref in load()", async () => {
-		const client = new MusherClient();
-		await expect(client.load("bad")).rejects.toThrow(MushError);
+		await expect(client.pull("invalid-ref")).rejects.toThrow(MusherError);
+		await expect(client.pull("/missing-namespace")).rejects.toThrow(MusherError);
+		await expect(client.pull("")).rejects.toThrow(MusherError);
 	});
 
 	it("accepts versioned refs in pull()", async () => {

@@ -1,13 +1,13 @@
 /**
  * Error hierarchy for the Musher SDK.
  *
- * All errors extend MushError so consumers can catch the base class.
+ * All errors extend MusherError so consumers can catch the base class.
  */
 
-export class MushError extends Error {
+export class MusherError extends Error {
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options);
-		this.name = "MushError";
+		this.name = "MusherError";
 	}
 }
 
@@ -22,7 +22,7 @@ export interface ProblemDetail {
 	traceId?: string | undefined;
 }
 
-export class ApiError extends MushError {
+export class ApiError extends MusherError {
 	readonly status: number;
 	readonly problem: ProblemDetail;
 
@@ -80,7 +80,7 @@ export class RateLimitError extends ApiError {
 
 // -- Network errors -----------------------------------------------------------
 
-export class NetworkError extends MushError {
+export class NetworkError extends MusherError {
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options);
 		this.name = "NetworkError";
@@ -96,7 +96,7 @@ export class TimeoutError extends NetworkError {
 
 // -- Cache errors -------------------------------------------------------------
 
-export class CacheError extends MushError {
+export class CacheError extends MusherError {
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options);
 		this.name = "CacheError";
@@ -116,9 +116,22 @@ export class IntegrityError extends CacheError {
 
 // -- Schema errors ------------------------------------------------------------
 
-export class SchemaError extends MushError {
+export class SchemaError extends MusherError {
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options);
 		this.name = "SchemaError";
+	}
+}
+
+// -- Bundle errors ------------------------------------------------------------
+
+export class BundleAssetNotFoundError extends MusherError {
+	constructor(
+		readonly assetType: string,
+		readonly assetName: string,
+		options?: ErrorOptions,
+	) {
+		super(`${assetType} "${assetName}" not found in bundle`, options);
+		this.name = "BundleAssetNotFoundError";
 	}
 }

@@ -20,9 +20,9 @@ export interface ClientConfig {
 	manifestTtlSeconds?: number;
 	/** Ref cache TTL in seconds. Default: 300 (5 minutes) */
 	refTtlSeconds?: number;
-	/** Request timeout in milliseconds. Default: 30000 */
+	/** Request timeout in milliseconds. Default: 60000 */
 	timeout?: number;
-	/** Number of retries on transient failures. Default: 2 */
+	/** Number of retries on transient failures. Default: 3 */
 	retries?: number;
 }
 

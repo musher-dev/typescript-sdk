@@ -1,27 +1,4 @@
 // -- Client -------------------------------------------------------------------
-export { MusherClient } from "./client.js";
-export type { ClientConfig } from "./config.js";
-
-// -- Paths --------------------------------------------------------------------
-export { resolveMusherDirs } from "./paths.js";
-export type { MusherDirs } from "./paths.js";
-
-// -- Core classes -------------------------------------------------------------
-export { Bundle } from "./bundle.js";
-export { BundleRef } from "./ref.js";
-export { Selection } from "./selection.js";
-
-// -- Handles ------------------------------------------------------------------
-export {
-	AgentSpecHandle,
-	FileHandle,
-	PromptHandle,
-	SkillHandle,
-	ToolsetHandle,
-} from "./handles/index.js";
-
-// -- Frontmatter --------------------------------------------------------------
-export { extractDescription, parseFrontmatter, type FrontmatterResult } from "./frontmatter.js";
 
 // -- Adapters -----------------------------------------------------------------
 export {
@@ -33,18 +10,21 @@ export {
 	type OpenAIInlineSkill,
 	type OpenAILocalSkill,
 } from "./adapters/index.js";
-
+// -- Core classes -------------------------------------------------------------
+export { Bundle } from "./bundle.js";
+export { MusherClient } from "./client.js";
+export type { ClientConfig } from "./config.js";
 // -- Convenience functions ----------------------------------------------------
 export { configure, getClient, pull, resolve } from "./convenience.js";
-
 // -- Errors -------------------------------------------------------------------
 export {
 	ApiError,
 	AuthenticationError,
+	BundleAssetNotFoundError,
 	CacheError,
 	ForbiddenError,
 	IntegrityError,
-	MushError,
+	MusherError,
 	NetworkError,
 	NotFoundError,
 	type ProblemDetail,
@@ -53,7 +33,21 @@ export {
 	TimeoutError,
 	ValidationError,
 } from "./errors.js";
+// -- Frontmatter --------------------------------------------------------------
+export { extractDescription, type FrontmatterResult, parseFrontmatter } from "./frontmatter.js";
 
+// -- Handles ------------------------------------------------------------------
+export {
+	AgentSpecHandle,
+	FileHandle,
+	PromptHandle,
+	SkillHandle,
+	ToolsetHandle,
+} from "./handles/index.js";
+export type { MusherDirs } from "./paths.js";
+// -- Paths --------------------------------------------------------------------
+export { resolveMusherDirs } from "./paths.js";
+export { BundleRef } from "./ref.js";
 // -- Schemas ------------------------------------------------------------------
 export {
 	AssetDetailOutputSchema,
@@ -76,6 +70,7 @@ export {
 	PullBundleVersionOutputSchema,
 	paginatedSchema,
 } from "./schemas/index.js";
+export { Selection } from "./selection.js";
 
 // -- Types --------------------------------------------------------------------
 export type {
@@ -91,9 +86,6 @@ export type {
 	CacheEntry,
 	CacheManager,
 	CacheStats,
-	CachedBundle,
-	LoadedAsset,
-	LoadedBundle,
 	ManifestAssetOutput,
 	ManifestDetailOutput,
 	Paginated,

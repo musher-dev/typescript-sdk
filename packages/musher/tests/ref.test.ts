@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MushError } from "../src/errors.js";
+import { MusherError } from "../src/errors.js";
 import { BundleRef } from "../src/ref.js";
 
 describe("BundleRef", () => {
@@ -48,10 +48,10 @@ describe("BundleRef", () => {
 	});
 
 	it("rejects invalid refs", () => {
-		expect(() => BundleRef.parse("invalid")).toThrow(MushError);
-		expect(() => BundleRef.parse("too/many/parts")).toThrow(MushError);
-		expect(() => BundleRef.parse("/missing")).toThrow(MushError);
-		expect(() => BundleRef.parse("")).toThrow(MushError);
+		expect(() => BundleRef.parse("invalid")).toThrow(MusherError);
+		expect(() => BundleRef.parse("too/many/parts")).toThrow(MusherError);
+		expect(() => BundleRef.parse("/missing")).toThrow(MusherError);
+		expect(() => BundleRef.parse("")).toThrow(MusherError);
 	});
 
 	it("allows dots and underscores in slug", () => {
