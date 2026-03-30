@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Bundle } from "../src/bundle.js";
+import { BundleAssetNotFoundError } from "../src/errors.js";
 import type { BundleResolveOutput } from "../src/types.js";
 
 function sha(text: string): string {
@@ -107,7 +107,7 @@ describe("Bundle", () => {
 	it("skill() accessor", () => {
 		const bundle = new Bundle(makeManifest(), makeContents());
 		expect(bundle.skill("review").name).toBe("review");
-		expect(() => bundle.skill("nonexistent")).toThrow("not found");
+		expect(() => bundle.skill("nonexistent")).toThrow(BundleAssetNotFoundError);
 	});
 
 	it("groups prompts correctly", () => {
@@ -143,21 +143,6 @@ describe("Bundle", () => {
 		expect(result.ok).toBe(false);
 		expect(result.errors).toHaveLength(1);
 		expect(result.errors[0]?.path).toBe("prompts/system.md");
-	});
-
-	it("deprecated getAsset() still works", () => {
-		const bundle = new Bundle(makeManifest(), makeContents());
-		const asset = bundle.getAsset("prompts/system.md");
-		expect(asset?.content).toBe(PROMPT_CONTENT);
-		expect(asset?.assetType).toBe("prompt");
-	});
-
-	it("deprecated getAssetsByType() still works", () => {
-		const bundle = new Bundle(makeManifest(), makeContents());
-		const skills = bundle.getAssetsByType("skill");
-		expect(skills).toHaveLength(2);
-		const configs = bundle.getAssetsByType("config");
-		expect(configs).toHaveLength(0);
 	});
 
 	describe("writeLockfile", () => {

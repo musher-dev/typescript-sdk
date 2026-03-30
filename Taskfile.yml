@@ -56,6 +56,15 @@ tasks:
     cmds:
       - pnpm -r check:attw
 
+  ci:
+    desc: Run full CI pipeline (check + build + publish validation)
+    cmds:
+      - task: check
+      - task: check:exports
+      - task: build
+      - pnpm -r check:publint
+      - pnpm -r check:attw
+
   clean:
     desc: Clean build artifacts
     cmds:

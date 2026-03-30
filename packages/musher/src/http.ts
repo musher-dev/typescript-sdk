@@ -5,6 +5,7 @@
 import type { z } from "zod";
 
 const TRAILING_SLASH_RE = /\/$/;
+
 import type { ResolvedConfig } from "./config.js";
 import {
 	ApiError,

@@ -63,38 +63,6 @@ export type PullBundleVersionOutput = z.infer<typeof PullBundleVersionOutputSche
 
 // -- High-level types ---------------------------------------------------------
 
-/**
- * @deprecated Use `FileHandle` instead.
- */
-export interface LoadedAsset {
-	logicalPath: string;
-	assetType: string;
-	content: string;
-	sha256: string;
-	mediaType?: string | undefined;
-}
-
-/**
- * @deprecated Use `Bundle` class instead.
- */
-export interface LoadedBundle {
-	ref: string;
-	version: string;
-	assets: Map<string, LoadedAsset>;
-	getAsset(path: string): LoadedAsset | undefined;
-	getAssetsByType(type: string): LoadedAsset[];
-}
-
-/** @deprecated Use `Bundle` class instead. */
-export interface CachedBundle {
-	ref: string;
-	version: string;
-	cacheDir: string;
-	manifest: BundleResolveOutput;
-}
-
-// -- New types ----------------------------------------------------------------
-
 export interface VerifyResult {
 	ok: boolean;
 	errors: Array<{ path: string; expected: string; actual: string }>;

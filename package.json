@@ -12,11 +12,11 @@
 		"clean": "pnpm -r clean"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.0.0",
 		"tsx": "^4.21.0",
-		"typescript": "^5.7.0"
+		"typescript": "^5.9.0"
 	},
-	"packageManager": "pnpm@9.15.0",
+	"packageManager": "pnpm@10.33.0",
 	"engines": {
 		"node": ">=20"
 	}

@@ -21,8 +21,6 @@ import type {
 	PullBundleVersionOutput,
 } from "./types.js";
 
-let _loadDeprecationWarned = false;
-
 export class MusherClient {
 	readonly bundles: BundlesResource;
 
@@ -149,46 +147,6 @@ export class MusherClient {
 		}
 
 		return resolved;
-	}
-
-	/**
-	 * @deprecated Use `pull()` instead. This method will be removed in a future version.
-	 *
-	 * Load a bundle into memory. Checks cache first (TTL-aware), pulls if stale.
-	 */
-	async load(ref: string, version?: string): Promise<Bundle> {
-		if (!_loadDeprecationWarned) {
-			_loadDeprecationWarned = true;
-			process.emitWarning(
-				"MusherClient.load() is deprecated. Use pull() instead.",
-				"DeprecationWarning",
-			);
-		}
-
-		const parsed = BundleRef.parse(ref);
-		let resolvedVersion = version ?? parsed.version;
-
-		// For unversioned, non-digest refs, try the ref cache first
-		if (!(resolvedVersion || parsed.digest)) {
-			const cachedVersion = await this._cache.resolveRef(parsed.namespace, parsed.slug, "latest");
-			if (cachedVersion) {
-				resolvedVersion = cachedVersion;
-			}
-		}
-
-		// If version is known, check manifest cache
-		if (resolvedVersion) {
-			const fresh = await this._cache.isFresh(parsed.namespace, parsed.slug, resolvedVersion);
-			if (fresh) {
-				const loaded = await this._cache.load(parsed.namespace, parsed.slug, resolvedVersion);
-				if (loaded) {
-					return loaded;
-				}
-			}
-		}
-
-		// Pull (resolve + download + cache)
-		return this.pull(ref, version);
 	}
 
 	/**

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -48,10 +48,7 @@ describe("BundleCache", () => {
 
 	it("writes and loads a bundle via content-addressable blobs", async () => {
 		const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
-		const cached = await cache.write(FIXTURE_MANIFEST, assets);
-
-		expect(cached.ref).toBe("acme/test-bundle");
-		expect(cached.version).toBe("1.0.0");
+		await cache.write(FIXTURE_MANIFEST, assets);
 
 		const loaded = await cache.load("acme", "test-bundle", "1.0.0");
 		expect(loaded).not.toBeNull();
@@ -63,15 +60,6 @@ describe("BundleCache", () => {
 		const file = loaded?.file("hello.txt");
 		expect(file?.text()).toBe("Hello, World!");
 		expect(file?.assetType).toBe("prompt");
-	});
-
-	it("accepts string values in write() for backwards compat", async () => {
-		const assets = new Map<string, Buffer | string>([["hello.txt", "Hello, World!"]]);
-		const cached = await cache.write(FIXTURE_MANIFEST, assets);
-		expect(cached.ref).toBe("acme/test-bundle");
-
-		const loaded = await cache.load("acme", "test-bundle", "1.0.0");
-		expect(loaded?.file("hello.txt")?.text()).toBe("Hello, World!");
 	});
 
 	it("returns null for missing cache entry", async () => {
@@ -88,18 +76,6 @@ describe("BundleCache", () => {
 
 		const stale = await cache.isFresh("acme", "test-bundle", "2.0.0");
 		expect(stale).toBe(false);
-	});
-
-	it("deprecated getAssetsByType still works via Bundle", async () => {
-		const assets = new Map([["hello.txt", Buffer.from("Hello, World!")]]);
-		await cache.write(FIXTURE_MANIFEST, assets);
-
-		const loaded = await cache.load("acme", "test-bundle", "1.0.0");
-		const prompts = loaded?.getAssetsByType("prompt");
-		expect(prompts).toHaveLength(1);
-
-		const configs = loaded?.getAssetsByType("config");
-		expect(configs).toHaveLength(0);
 	});
 
 	it("purge removes all cached data", async () => {
