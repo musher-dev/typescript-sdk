@@ -90,7 +90,7 @@ describe("ToolsetHandle", () => {
 
 describe("AgentSpecHandle", () => {
 	it("wraps a single file", () => {
-		const fh = new FileHandle("agent.yaml", "agent_definition", "x", 4, Buffer.from("name"));
+		const fh = new FileHandle("agent.yaml", "agent_spec", "x", 4, Buffer.from("name"));
 		const spec = new AgentSpecHandle("agent", fh);
 
 		expect(spec.name).toBe("agent");

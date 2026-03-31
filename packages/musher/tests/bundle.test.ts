@@ -62,7 +62,7 @@ function makeManifest(): BundleResolveOutput {
 				{
 					assetId: "asset-005",
 					logicalPath: "agents/main.yaml",
-					assetType: "agent_definition",
+					assetType: "agent_spec",
 					contentSha256: sha(AGENT_CONTENT),
 					sizeBytes: AGENT_CONTENT.length,
 				},

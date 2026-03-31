@@ -7,7 +7,7 @@ export const BundleVisibility = z.enum(["private", "public"]);
 export const BundleVersionState = z.enum(["published", "yanked"]);
 
 export const AssetType = z.enum([
-	"agent_definition",
+	"agent_spec",
 	"skill",
 	"tool_config",
 	"prompt",

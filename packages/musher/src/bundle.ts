@@ -88,7 +88,7 @@ export class Bundle {
 					this._toolsets.set(name, new ToolsetHandle(name, fh));
 					break;
 				}
-				case "agent_definition": {
+				case "agent_spec": {
 					const name = baseFileName(fh.logicalPath);
 					this._agentSpecs.set(name, new AgentSpecHandle(name, fh));
 					break;
