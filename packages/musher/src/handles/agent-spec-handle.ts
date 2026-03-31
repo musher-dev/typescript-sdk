@@ -1,5 +1,5 @@
 /**
- * AgentSpecHandle — wraps a single agent_definition asset.
+ * AgentSpecHandle — wraps a single agent_spec asset.
  */
 
 import type { FileHandle } from "./file-handle.js";
