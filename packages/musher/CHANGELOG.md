@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/musher-dev/typescript-sdk/compare/0.2.0...0.3.0) (2026-03-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* replace `agent_definition` asset type with `agent_spec` to match platform API
+
+### Bug Fixes
+
+* replace `agent_definition` asset type with `agent_spec` to match platform API ([533b0bd](https://github.com/musher-dev/typescript-sdk/commit/533b0bd37cd58e97d5a35e9aa79fef84ed77cb7a))
+
 ## [0.2.0](https://github.com/musher-dev/typescript-sdk/compare/0.1.5...0.2.0) (2026-03-30)
 
 
