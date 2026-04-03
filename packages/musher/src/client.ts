@@ -9,7 +9,13 @@ import { createHash } from "node:crypto";
 import { Bundle } from "./bundle.js";
 import { BundleCache } from "./cache.js";
 import { type ClientConfig, resolveConfig } from "./config.js";
-import { ApiError, ForbiddenError, IntegrityError, NotFoundError } from "./errors.js";
+import {
+	ApiError,
+	AuthenticationError,
+	ForbiddenError,
+	IntegrityError,
+	NotFoundError,
+} from "./errors.js";
 import { HttpTransport } from "./http.js";
 import { BundleRef } from "./ref.js";
 import { BundlesResource } from "./resources/bundles.js";
@@ -51,12 +57,24 @@ export class MusherClient {
 		const resolvedVersion = version ?? parsed.version;
 
 		// Resolve metadata first (needed for manifest hashes and cache keys)
-		const resolved = await this.bundles.resolve(
-			parsed.namespace,
-			parsed.slug,
-			resolvedVersion,
-			parsed.digest,
-		);
+		let resolved: BundleResolveOutput;
+		try {
+			resolved = await this.bundles.resolve(
+				parsed.namespace,
+				parsed.slug,
+				resolvedVersion,
+				parsed.digest,
+			);
+		} catch (error) {
+			if (
+				!(error instanceof AuthenticationError || error instanceof ForbiddenError) ||
+				!resolvedVersion
+			) {
+				throw error;
+			}
+			// Namespace resolve requires auth — fall back to hub-only pull
+			return this.pullFromHub(parsed.namespace, parsed.slug, resolvedVersion);
+		}
 
 		// Pull asset content — try :pull endpoint (single request), fall back to
 		// individual asset fetches if the caller lacks namespace access.
@@ -130,12 +148,26 @@ export class MusherClient {
 		}
 
 		// Cache miss or stale — call the API
-		const resolved = await this.bundles.resolve(
-			parsed.namespace,
-			parsed.slug,
-			resolvedVersion,
-			parsed.digest,
-		);
+		let resolved: BundleResolveOutput;
+		try {
+			resolved = await this.bundles.resolve(
+				parsed.namespace,
+				parsed.slug,
+				resolvedVersion,
+				parsed.digest,
+			);
+		} catch (error) {
+			if (
+				!(error instanceof AuthenticationError || error instanceof ForbiddenError) ||
+				!resolvedVersion
+			) {
+				throw error;
+			}
+			// Namespace resolve requires auth — fall back to hub pull for metadata
+			resolved = await this.resolveFromHub(parsed.namespace, parsed.slug, resolvedVersion);
+			await this._cache.writeManifest(resolved);
+			return resolved;
+		}
 
 		// Persist resolved manifest to disk cache
 		await this._cache.writeManifest(resolved);
@@ -147,6 +179,83 @@ export class MusherClient {
 		}
 
 		return resolved;
+	}
+
+	/**
+	 * Build a synthetic BundleResolveOutput from hub pull data.
+	 * Used when namespace :resolve requires auth and we fall back to the public hub.
+	 */
+	private async resolveFromHub(
+		namespace: string,
+		slug: string,
+		version: string,
+	): Promise<BundleResolveOutput> {
+		const pulled = await this.bundles.pullHubVersion(namespace, slug, version);
+
+		const layers = pulled.manifest.map((asset) => {
+			const buf = Buffer.from(asset.contentText, "utf-8");
+			return {
+				assetId: "",
+				logicalPath: asset.logicalPath,
+				assetType: asset.assetType,
+				contentSha256: createHash("sha256").update(buf).digest("hex"),
+				sizeBytes: buf.length,
+				mediaType: asset.mediaType ?? null,
+			};
+		});
+
+		return {
+			bundleId: "",
+			versionId: "",
+			namespace,
+			slug,
+			ref: `${namespace}/${slug}`,
+			version: pulled.version,
+			sourceType: "registry",
+			state: "published",
+			manifest: { layers },
+		};
+	}
+
+	/**
+	 * Pull a public bundle entirely via the hub endpoint (no auth required).
+	 * Used when namespace :resolve returns 401/403.
+	 */
+	private async pullFromHub(namespace: string, slug: string, version: string): Promise<Bundle> {
+		const pulled = await this.bundles.pullHubVersion(namespace, slug, version);
+
+		const assets = new Map<string, Buffer>();
+		const layers = [];
+
+		for (const asset of pulled.manifest) {
+			const buf = Buffer.from(asset.contentText, "utf-8");
+			const hash = createHash("sha256").update(buf).digest("hex");
+			assets.set(asset.logicalPath, buf);
+			layers.push({
+				assetId: "",
+				logicalPath: asset.logicalPath,
+				assetType: asset.assetType,
+				contentSha256: hash,
+				sizeBytes: buf.length,
+				mediaType: asset.mediaType ?? null,
+			});
+		}
+
+		const resolved: BundleResolveOutput = {
+			bundleId: "",
+			versionId: "",
+			namespace,
+			slug,
+			ref: `${namespace}/${slug}`,
+			version: pulled.version,
+			sourceType: "registry",
+			state: "published",
+			manifest: { layers },
+		};
+
+		await this._cache.write(resolved, assets);
+
+		return new Bundle(resolved, assets);
 	}
 
 	/**
@@ -165,7 +274,13 @@ export class MusherClient {
 		try {
 			return await this.bundles.pullVersion(namespace, slug, resolved.version);
 		} catch (error) {
-			if (!(error instanceof ForbiddenError || error instanceof NotFoundError)) {
+			if (
+				!(
+					error instanceof AuthenticationError ||
+					error instanceof ForbiddenError ||
+					error instanceof NotFoundError
+				)
+			) {
 				throw error;
 			}
 		}
