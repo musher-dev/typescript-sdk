@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/musher-dev/typescript-sdk/compare/0.3.0...0.4.0) (2026-04-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* catch AuthenticationError in pull/resolve fallback chain for public bundles
+
+### Bug Fixes
+
+* catch AuthenticationError in pull/resolve fallback chain for public bundles ([011ad11](https://github.com/musher-dev/typescript-sdk/commit/011ad11b3dce1852100ed09494434933703921d1)), closes [#20](https://github.com/musher-dev/typescript-sdk/issues/20)
+
 ## [0.3.0](https://github.com/musher-dev/typescript-sdk/compare/0.2.0...0.3.0) (2026-03-31)
 
 
