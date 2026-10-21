@@ -33,6 +33,9 @@ One-time setup step?
 
 Runs on every container start?
   → scripts/startup.sh
+
+Runs every time an editor attaches?
+  → scripts/post-attach.sh
 ```
 
 ## Quick Reference
@@ -47,7 +50,9 @@ Runs on every container start?
 | | Debug launch configs | `.vscode/launch.json` (in consuming project) |
 | **Shell & User** | Default shell, prompt, oh-my-zsh config | `devcontainer.json` → `common-utils` feature |
 | | Shell aliases, functions, plugins | `.devcontainer/config/shell/` |
-| | Git config | Host `.gitconfig` (auto-forwarded by devcontainers) |
+| | Shell and REPL history | `shell-history` volume; `HISTFILE` lines from `lib/base-setup.sh` |
+| | Git config | Host `.gitconfig`, copied in by VS Code after post-create |
+| | GitHub credential for gh and git | `lib/github-auth.sh` (post-create seeds, post-attach wires) |
 | | Git hooks | Project repo (`.husky/` or `.githooks/`) |
 | **Environment** | Runtime behavior vars (`PYTHONUNBUFFERED`, etc.) | `devcontainer.json` → `containerEnv` |
 | | PATH extensions | `devcontainer.json` → `remoteEnv` |
@@ -67,11 +72,14 @@ Runs on every container start?
 | | DB schema init (project) | `.devcontainer/config/postgres/01-project.sql` |
 | | DB migrations | Project tooling (Atlas, Flyway — not in template) |
 | | Data persistence | Compose files → named volumes |
+| | What a rebuild keeps | `devcontainer.json` → `mounts` (see "What a Rebuild Keeps") |
 | **Lifecycle** | One-time container setup | `scripts/post-create.sh` → `lib/base-setup.sh` |
 | | Every-start tasks | `scripts/startup.sh` |
+| | Every-attach tasks | `scripts/post-attach.sh` |
 | | Task automation | `Taskfile.yml` (in consuming project) |
-| **AI Tools** | AI CLI installation | `devcontainer.json` feature (Claude) + `lib/base-setup.sh` (Codex) |
-| | AI CLI config persistence | `devcontainer.json` → `mounts` (named volumes) |
+| **AI Tools** | AI CLI installation | `lib/base-setup.sh` (Claude Code's native installer, Codex) |
+| | AI CLI config persistence | `devcontainer.json` → `mounts` (named volumes), `CLAUDE_CONFIG_DIR` |
+| | Claude Code's default effort | `devcontainer.json` → `containerEnv` → `CLAUDE_CODE_EFFORT_LEVEL` |
 | **Security** | Container capabilities | `devcontainer.json` → `capAdd` / `securityOpt` |
 | | Network binding | Compose files → all ports bound to `127.0.0.1` |
 
@@ -141,7 +149,20 @@ Shared files are sourced first, then local files, so local settings override tea
 
 ### Git Config
 
-Git config is auto-forwarded from your host machine by the devcontainer CLI. No configuration needed in the template.
+VS Code's Dev Containers extension copies the host's `~/.gitconfig` into the container after post-create, and only when the container has none yet, together with a credential helper that answers from the host's own store. So nothing in post-create may write `~/.gitconfig`: a file there by then keeps your name and email out, and `git commit` fails with "Author identity unknown".
+
+### GitHub Credentials
+
+[`lib/github-auth.sh`](.devcontainer/scripts/lib/github-auth.sh) gives the container's own `gh` a token and points git's `github.com` credential at it, so `gh` and `git push` work without a login:
+
+- **post-create** calls `github_auth_seed`, which stores a token when one has reached the container already: the host's exported `GH_TOKEN`, passed in as `MUSHER_HOST_GH_TOKEN`. It writes no git config.
+- **post-attach** calls `ensure_github_auth`. If gh still has no token it asks VS Code's forwarded helper; then it clears the helper lines the host's `.gitconfig` brought for the host's own `gh`, which name a path that does not exist here, and runs `gh auth setup-git`.
+
+`gh` accepts a token only with the `repo` and `read:org` scopes, which some credential managers' tokens lack; then run `gh auth login` once, and the `gh-config` volume keeps it. The file is a verbatim copy of the canonical one in [`musher-dev/development-container`](https://github.com/musher-dev/development-container): change it there first.
+
+### Shell History
+
+zsh and bash keep their history on the `shell-history` volume, so it survives a rebuild. `base_setup_shell_history` appends one `HISTFILE` line to the end of `~/.zshrc` and of `~/.bashrc`, where bash also writes after every command. The end matters: VS Code's shell integration sets `HISTFILE` before it sources `~/.zshrc`, and oh-my-zsh keeps a value already set. Node's, Python's and psql's REPL histories go to the same volume through `containerEnv`.
 
 ---
 
@@ -281,7 +302,23 @@ SQL files in `.devcontainer/config/postgres/` are mounted into PostgreSQL's `doc
 
 ### Persistence
 
-All services use named Docker volumes (e.g., `musher-postgres-data`). Data persists across container restarts but is lost on full rebuild. For migrations, use project-level tooling (Atlas, Flyway, etc.).
+All services use named Docker volumes (e.g., `musher-postgres-data`). They live in Docker-in-Docker's data root, `/var/lib/docker`, which the docker-in-docker Feature keeps on a volume of its own (`dind-var-lib-docker-${devcontainerId}`), so stack data survives a rebuild as well as a restart. For migrations, use project-level tooling (Atlas, Flyway, etc.).
+
+### What a Rebuild Keeps
+
+Each volume `devcontainer.json` mounts is named `musher-${devcontainerId}-<purpose>`. `${devcontainerId}` is stable across rebuilds and unique to the container, so **Rebuild Container** keeps the volume and no other repository's container shares it:
+
+| Volume | Mounted at | Keeps |
+|---|---|---|
+| `gh-config` | `~/.config/gh` | The `gh` login |
+| `claude-config` | `~/.claude` | Claude Code's login, settings and sessions (`/resume`), with `CLAUDE_CONFIG_DIR` |
+| `codex-config` | `~/.codex` | Codex's login and settings |
+| `shell-history` | `~/.shell-history` | zsh, bash, Node, Python and psql history |
+| `cache` | `~/.cache` | The caches `containerEnv` points there: uv, pip, npm, bun, Go, Deno, ruff and mypy |
+
+`node_modules/` stays on the bind mount, in your checkout.
+
+To start a volume over, work on the host, because inside the container `docker` talks to Docker-in-Docker's own daemon. List the container's volumes with `docker inspect -f '{{range .Mounts}}{{.Name}} {{end}}' <container>` (`docker ps -a` finds it), remove the container (`docker rm -f <container>`; a stopped one still holds its volumes), run `docker volume rm <name>`, then reopen the folder in the container.
 
 ### Adding Volumes
 
@@ -291,6 +328,8 @@ Follow the naming convention `musher-${devcontainerId}-<purpose>`:
 "source=musher-${devcontainerId}-my-tool,target=/home/vscode/.my-tool,type=volume"
 ```
 
+A new volume works only if two things hold. Its target's parent already exists in the image, because Docker creates any missing directory on the way as root, and a root-owned `~/.local` stops Claude Code from installing. And it is in `base_setup_config_dirs`, because a fresh volume arrives root-owned.
+
 ---
 
 ## Lifecycle
@@ -299,6 +338,7 @@ Follow the naming convention `musher-${devcontainerId}-<purpose>`:
 |---|---|---|
 | `postCreateCommand` | Once, on container creation | Tool installation, permissions, `.env` setup |
 | `postStartCommand` | Every container start | `docker compose up`, health checks |
+| `postAttachCommand` | Every time an editor attaches | Finishing the GitHub credential, once VS Code has copied `.gitconfig` |
 
 ### Skipping Base Steps
 
@@ -308,6 +348,9 @@ Call individual functions instead of `base_setup`:
 main() {
   log "Starting post-create setup..."
   base_setup_config_dirs
+  base_setup_cache_dirs
+  base_setup_github_seed
+  base_setup_shell_history
   base_fix_nvm_permissions
   # Skip codex: base_install_codex
   base_verify_tools
@@ -319,8 +362,10 @@ main() {
 
 ```
 post-create.sh              ← Entry point (repo-specific customization)
-  └── lib/base-setup.sh     ← Reusable orchestrator (AI CLIs, Task, NVM, config dirs)
-        └── lib/common.sh   ← Shared utilities (log, retry, has_cmd, ensure_writable_dir)
+  └── lib/base-setup.sh     ← Reusable orchestrator (AI CLIs, Task, NVM, config dirs, history)
+        ├── lib/common.sh   ← Shared utilities (log, retry, has_cmd, ensure_writable_dir)
+        └── lib/github-auth.sh ← github_auth_seed: a token for gh, no git config
+post-attach.sh              ← Every attach: ensure_github_auth (lib/github-auth.sh)
 ```
 
 ---
@@ -329,12 +374,16 @@ post-create.sh              ← Entry point (repo-specific customization)
 
 ### Installed CLIs
 
-- **Claude CLI** — Installed via the `claude-code` devcontainer Feature, config persisted in `~/.claude` volume
+- **Claude CLI** — Installed by the native installer in `base-setup.sh`, config persisted in `~/.claude` volume, and its VS Code extension (`anthropic.claude-code`)
 - **Codex CLI** — Installed via npm in `base-setup.sh`, config persisted in `~/.codex` volume
+
+### Effort
+
+Every Claude Code session starts at max effort: `containerEnv` sets `CLAUDE_CODE_EFFORT_LEVEL=max`. It is an environment variable because the settings file's `effortLevel` accepts only `low` to `xhigh`, and quietly drops `max`. The variable outranks `/effort` and the model picker for the whole session, subagents included, so start a lighter one as `CLAUDE_CODE_EFFORT_LEVEL=auto claude` (the model's default) or `=high`. An organization's `maxEffortLevel` still caps it.
 
 ### Configuration Persistence
 
-AI CLI configs are stored in named volumes mounted via `devcontainer.json` → `mounts`. This preserves authentication and settings across container rebuilds.
+AI CLI configs are stored in named volumes mounted via `devcontainer.json` → `mounts`. This preserves authentication and settings across container rebuilds. `CLAUDE_CONFIG_DIR` points Claude Code at its volume, so `.claude.json`, which holds the account and onboarding state, survives a rebuild too, beside the session transcripts `/resume` reads.
 
 ---
 
@@ -370,7 +419,9 @@ AI CLI configs are stored in named volumes mounted via `devcontainer.json` → `
   scripts/
     post-create.sh            One-time setup entry point
     startup.sh                Every-start service launcher
+    post-attach.sh            Every-attach GitHub credential
     lib/
       base-setup.sh           Reusable tool installer
       common.sh               Shared utilities
+      github-auth.sh          gh token and git wiring (canonical; copied verbatim)
 ```
