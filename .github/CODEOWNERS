@@ -1,1 +1,39 @@
-* @musher-dev/sdk
+# CODEOWNERS — the ownership half of the selective code-owner review gate
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# The standard: musher-dev/platform ADR 0134, checked by engineering-conventions
+# COMM-09 (no `*` catch-all) and COMM-10 (every anchored path exists). The
+# other half is a ruleset with `require_code_owner_review: true`, applied
+# from musher-dev/infra-github.
+#
+# How review works here:
+#
+#   A pull request that touches NO path listed below merges on green CI alone:
+#   the required checks are the gate. That includes dependency bumps to
+#   package.json and pnpm-lock.yaml, which CI verifies, not a reviewer.
+#   A pull request that touches a listed path also needs its owner's approval.
+#   GitHub waives that on the owner's own pull requests.
+#
+# What is owned, and why:
+#   /.github/   the gate and the release path: this file, the CI workflows,
+#               the release workflow that publishes @musher-dev/musher-sdk to
+#               npm with build provenance, and the release-please config
+#   /.npmrc     where the @musher-dev scope resolves; a change here can point
+#               installs of our own packages at another registry
+#
+# Everything else is unowned on purpose. Listing a path is a commitment to
+# review every change to it, so keep the list short.
+#
+# Syntax rules that bite:
+#   - NEVER add a `*` catch-all (COMM-09). It makes every pull request
+#     codeowned and brings back blanket review of the whole repository.
+#   - LAST matching pattern wins — order from broad to specific.
+#   - ALL owners for a pattern go on ONE line.
+#   - Owners need EXPLICIT write access to this repo, or the entry is silently
+#     ignored and the path becomes unowned. GitHub lists such lines at
+#     `gh api repos/musher-dev/typescript-sdk/codeowners/errors`.
+#   - A root-anchored path must exist (COMM-10): after a rename, the old line
+#     protects nothing.
+
+/.github/    @musher-dev/sdk
+/.npmrc      @musher-dev/sdk
