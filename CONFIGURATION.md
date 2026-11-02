@@ -79,7 +79,6 @@ Runs every time an editor attaches?
 | | Task automation | `Taskfile.yml` (in consuming project) |
 | **AI Tools** | AI CLI installation | `lib/base-setup.sh` (Claude Code's native installer, Codex) |
 | | AI CLI config persistence | `devcontainer.json` → `mounts` (named volumes), `CLAUDE_CONFIG_DIR` |
-| | Claude Code's default effort | `devcontainer.json` → `containerEnv` → `CLAUDE_CODE_EFFORT_LEVEL` |
 | **Security** | Container capabilities | `devcontainer.json` → `capAdd` / `securityOpt` |
 | | Network binding | Compose files → all ports bound to `127.0.0.1` |
 
@@ -379,7 +378,7 @@ post-attach.sh              ← Every attach: ensure_github_auth (lib/github-aut
 
 ### Effort
 
-Every Claude Code session starts at max effort: `containerEnv` sets `CLAUDE_CODE_EFFORT_LEVEL=max`. It is an environment variable because the settings file's `effortLevel` accepts only `low` to `xhigh`, and quietly drops `max`. The variable outranks `/effort` and the model picker for the whole session, subagents included, so start a lighter one as `CLAUDE_CODE_EFFORT_LEVEL=auto claude` (the model's default) or `=high`. An organization's `maxEffortLevel` still caps it.
+Claude Code starts every session at the model's default effort, `auto`, and `/effort` changes it. `containerEnv` sets no `CLAUDE_CODE_EFFORT_LEVEL`, because the variable outranks `/effort` and the model picker for the whole session, subagents included.
 
 ### Configuration Persistence
 
