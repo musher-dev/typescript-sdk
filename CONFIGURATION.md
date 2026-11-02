@@ -378,7 +378,7 @@ post-attach.sh              ← Every attach: ensure_github_auth (lib/github-aut
 
 ### Effort
 
-Claude Code starts every session at the model's default effort, `auto`, and `/effort` changes it. `containerEnv` sets no `CLAUDE_CODE_EFFORT_LEVEL`, because the variable outranks `/effort` and the model picker for the whole session, subagents included.
+Claude Code runs at the level you pick with `/effort`, or else at the model's default, and `/effort auto` clears a saved level ([resolution order](https://code.claude.com/docs/en/model-config#adjust-effort-level)). `containerEnv` sets no `CLAUDE_CODE_EFFORT_LEVEL`, because the variable outranks `/effort` and the model picker for the whole session, subagents included.
 
 ### Configuration Persistence
 
